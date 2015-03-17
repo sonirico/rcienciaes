@@ -1,3 +1,3 @@
 # podcastmanager
-Manages podcasts in streaming
+It manages podcasts in streaming
 # TODO: Fill this
