@@ -1,1 +1,42 @@
-<icestats><admin>icemaster@localhost</admin><client_connections>466</client_connections><clients>2</clients><connections>511</connections><file_connections>7</file_connections><host>localhost</host><listener_connections>43</listener_connections><listeners>1</listeners><location>Earth</location><server_id>Icecast 2.3.2</server_id><server_start>Thu, 26 Feb 2015 15:26:54 +0100</server_start><source_client_connections>37</source_client_connections><source_relay_connections>0</source_relay_connections><source_total_connections>37</source_total_connections><sources>1</sources><stats>0</stats><stats_connections>0</stats_connections><source mount="/mpd"><audio_info>channels=1;samplerate=44100;bitrate=128</audio_info><bitrate>128</bitrate><channels>1</channels><genre>various</genre><listener_peak>1</listener_peak><listeners>1</listeners><listenurl>http://localhost:8000/mpd</listenurl><max_listeners>unlimited</max_listeners><public>0</public><samplerate>44100</samplerate><server_description>Unspecified description</server_description><server_name>Radio Podcastellano in Streaming</server_name><server_type>audio/mpeg</server_type><slow_listeners>0</slow_listeners><source_ip>127.0.0.1</source_ip><stream_start>Tue, 17 Mar 2015 04:00:00 +0100</stream_start><title>Fernando Del Moral Garcia - Episodio 115</title><total_bytes_read>1160617352</total_bytes_read><total_bytes_sent>35159608</total_bytes_sent><user_agent>MPD</user_agent></source></icestats>
+<icestats>
+    <admin>icemaster@localhost</admin>
+    <client_connections>466</client_connections>
+    <clients>2</clients>
+    <connections>511</connections>
+    <file_connections>7</file_connections>
+    <host>localhost</host>
+    <listener_connections>43</listener_connections>
+    <listeners>1</listeners>
+    <location>Earth</location>
+    <server_id>Icecast 2.3.2</server_id>
+    <server_start>Thu, 26 Feb 2015 15:26:54 +0100</server_start>
+    <source_client_connections>37</source_client_connections>
+    <source_relay_connections>0</source_relay_connections>
+    <source_total_connections>37</source_total_connections>
+    <sources>1</sources>
+    <stats>0</stats>
+    <stats_connections>0</stats_connections>
+    <source mount="/mpd">
+        <audio_info>channels=1;samplerate=44100;bitrate=128</audio_info>
+        <bitrate>128</bitrate>
+        <channels>1</channels>
+        <genre>various</genre>
+        <listener_peak>1</listener_peak>
+        <listeners>1</listeners>
+        <listenurl>http://localhost:8000/mpd</listenurl>
+        <max_listeners>unlimited</max_listeners>
+        <public>0</public>
+        <samplerate>44100</samplerate>
+        <server_description>Unspecified description</server_description>
+        <server_name>Radio Podcastellano in Streaming</server_name>
+        <server_type>audio/mpeg</server_type>
+        <slow_listeners>0</slow_listeners>
+        <source_ip>127.0.0.1</source_ip>
+        <stream_start>Tue, 17 Mar 2015 04:00:00 +0100</stream_start>
+        <title>Fernando Del Moral Garcia - Episodio 115</title>
+        <total_bytes_read>1160617352</total_bytes_read>
+        <total_bytes_sent>35159608</total_bytes_sent>
+        <user_agent>MPD</user_agent>
+    </source>
+</icestats>
+
