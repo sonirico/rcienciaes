@@ -97,8 +97,8 @@ static/
 
 # But making sure every python file is included
 
-!*.py
+#!*.py
 
 # Except settings. VERY Sensitive data is stored there.
 
-*settings.py
+podcastmanager/settings.py
