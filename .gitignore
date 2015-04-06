@@ -1,0 +1,48 @@
+# git ls-files --others --exclude-from=.git/info/exclude
+# Lines that start with '#' are comments.
+# For a project mostly in C, the following would be a good set of
+# exclude patterns (uncomment them if you want to use them):
+# *.[oa]
+# *~
+
+# Think what to do with this:
+
+*/settings.py
+
+# Don't take care about static files (css, js ... )
+
+static/
+
+# PyCharm settings folder
+
+.idea/
+
+# What about compiled files?
+
+*.pyc
+
+# Migrations don't provide useful information, do they?
+
+*/migrations
+
+
+# Just being careful about the audios
+
+*.mp3
+*.m4a
+
+# Silence is golden ...
+
+*.log
+*.sql
+*.sqlite
+*.sqlite3
+*.db
+
+# When usgin vi(m)
+
+*.swp
+
+# But making sure every python file is included
+
+!*.py
