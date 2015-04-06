@@ -1,0 +1,50 @@
+{% extends "base_player.html" %}
+
+{% block title %}{{ my_title }} | Podcast Manager {% endblock %}
+
+{% load staticfiles %}
+{% block extrastaticfiles %}
+
+<!-- Tienen que estar en este orden -->
+<link rel="stylesheet" type="text/css" href="{% static 'css/jquery.steps.css' %}" />
+<link rel="stylesheet" type="text/css" href="{% static 'css/custom_podcaster.css' %}" />
+<style>
+    #back-top{
+        display: none !important;
+    }
+</style>
+<script>
+    //Some global data
+    COVERS_DIR = '{% static 'images/covers/' %}';
+    var current_pitch = -1;
+
+    var button_images = {
+        'play' : '{% static 'images/play.png' %}',
+        'played' : '{% static 'images/play_activo.png' %}',
+        'stop' : '{% static 'images/stop.png' %}',
+        'stopped' : '{% static 'images/stop_activo.png' %}',
+        'pause' : '{% static 'images/pause.png' %}',
+        'paused' : '{% static 'images/pause_activo.png' %}'
+    };
+</script>
+
+<script src="{% static 'js/jquery.js' %}"></script>
+<script src="{% static 'js/jquery.steps.min.js' %}"></script>
+<script src="{% static 'js/jquery.validate.min.js' %}"></script>
+<script src="{% static 'js/additional-methods.min.js' %}"></script>
+<script src="{% static 'js/player_podcaster.js' %}"></script>
+{% endblock %}
+
+{% block player %}
+
+{% endblock %}
+
+{% block pod_form %}
+
+{% include 'includes/podcaster_form.html' %}
+
+{% endblock %}
+
+{% block playlist %}
+
+{% endblock %}

@@ -1,0 +1,27 @@
+De cara a una versión mejorada:
+
+	- Añadir un "bocadillo" para los podcasters que les recuerde que deben replayear la reproducción.
+	  De no hacerlo no pasa nada, porque e implementado que al cerra la sesion o la venta no lo han hecho
+	  lo hage el programa automaticamente.
+
+	- ¿Seguir usando mpd? ...
+
+	- La playlist se extrae de la información que provee el propio mpd. Lo ideal sería
+	hacerlo mediante una combinacion de epiosidios almacenados en la BBDD con dicha info.
+
+	- Playlist dinamica en web. La playlist cambia cuando son invocadas funciones como
+	playlist.views.[reset|update]_playlist. Sin embargo, en el panel de administracion
+	permance estatico.
+
+	- En la playlist a veces aparecen audios que no tienen titulo o artista. Esto es porque
+	el propio audio mp3 no tiene esos datos en los metadatos. El problema es que desde el panel
+	de administración no se visualizan dichos datos lo cual es disfuncional. Dado que lo que sí
+	que existe es el fichero mp3, se podría hacer una consulta mediante AJAX para recoger estos datos.
+	Eso resolvería el problema pero realentizaría la interfaz de usuario. 
+
+	- Que la interfaz de la playlist sea responsive (visible y funcional desde moviles, tablets, ...).	
+
+	- Reprogramar la API bajo los estándares REST.
+
+	- Conseguir implementar lo de las promos.
+

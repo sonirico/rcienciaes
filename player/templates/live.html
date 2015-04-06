@@ -1,0 +1,80 @@
+{% extends "base_player.html" %}
+
+{% block title %}{{ my_title }} | Podcast Manager {% endblock %}
+
+{% block content %}
+        {% load staticfiles %}
+        {% block extrastaticfiles %}
+
+        <!-- Tienen que estar en este orden -->
+        <link rel="stylesheet" type="text/css" href="{% static 'css/jquery.steps.css' %}" />
+        <link rel="stylesheet" type="text/css" href="{% static 'css/custom_podcaster.css' %}" />
+        <link rel="stylesheet" type="text/css" href="{% static 'css/custom_live.css' %}" />
+
+        <script>
+            //Some global data
+            COVERS_DIR = '{% static 'images/covers/' %}';
+            var current_pitch = -1;
+
+            var button_images = {
+                'play' : '{% static 'images/play.png' %}',
+                'played' : '{% static 'images/play_activo.png' %}',
+                'stop' : '{% static 'images/stop.png' %}',
+                'stopped' : '{% static 'images/stop_activo.png' %}',
+                'pause' : '{% static 'images/pause.png' %}',
+                'paused' : '{% static 'images/pause_activo.png' %}'
+            };
+        </script>
+
+        <script src="{% static 'js/jquery.js' %}"></script>
+        <script src="{% static 'js/jquery.steps.min.js' %}"></script>
+        <script src="{% static 'js/jquery.validate.min.js' %}"></script>
+        <script src="{% static 'js/additional-methods.min.js' %}"></script>
+        <script src="{% static 'js/player_podcaster.js' %}"></script>
+        {% endblock %}
+
+        <h1>Reproductor</h1>
+
+        {% block player %}
+        <div id="player_box"  >
+            <div id="player_control_panel" >
+                <div id="div_status_container" >
+                    <span>Status: <strong id="status" ></strong></span><br/>
+                    <span>Podcast: <strong id="strong_podcast" ></strong></span><br/>
+                    <span>Episodio: <strong id="strong_episode" ></strong></span>
+                </div>
+                <div id="progressbar_container" >
+                    <progress id="progressbar"  value="1" max="100" ></progress>
+                    <time id="time_current_song" ></time>
+                </div>
+                <div style="clear:both" >&nbsp;</div>
+            </div>
+            <div id="div_tweet_form" >
+                <img src="{% static 'images/logo_twitter.gif' %}" />
+                {% include 'includes/tweet_form.html' %}
+            </div>
+            <div style="clear:both" >&nbsp;</div>
+        </div>
+        {% endblock %}
+        <div id="div_live" >
+            <h1>Modo Live</h1>
+            <div id="div_live_descripcion" >
+                <p>
+                    Ahora estás en directo. Has pausado la reproducción automática de Radio Podcastellano. Para salir del modo
+                    directo, clica sobre el botón. Cerrarás la sesión y la reproducción automáticamente se restaurará.
+                    <br>
+                    Además, dispones de una caja de texto donde puedes <strong>tuitear</strong>.
+                    <br/>
+                    <br/>
+                    <strong>NOTA: La reproducción retomará su curso si y sólo si cierras sesión mediante el botón.</strong>
+                    <br/>
+                    <strong>NOTA 2: No podrá entrar otro grupo de podcasters hasta que salgas del modo live adecuadamente.</strong>
+                </p>
+            </div>
+            <div id="live_button" >
+                <a href="out" >
+                    <img src="{% static 'images/exit.png' %}" title="Salir del modo Live" alt="Salir del modo Live" >
+                </a>
+            </div>
+        </div>
+{% endblock %}

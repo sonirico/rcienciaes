@@ -1,10 +1,144 @@
 from django.contrib import admin
-from models import *
+from playlist.views import *
+from django.contrib.contenttypes.models import ContentType
+
+
+def elapsed_time(seconds, suffixes=['y','w','d','h','m','s'], add_s=False, separator=' '):
+    time = []
+    parts = [(suffixes[0], 60 * 60 * 24 * 7 * 52),
+          (suffixes[1], 60 * 60 * 24 * 7),
+          (suffixes[2], 60 * 60 * 24),
+          (suffixes[3], 60 * 60),
+          (suffixes[4], 60),
+          (suffixes[5], 1)]
+    seconds = int(round(seconds))
+    # for each time piece, grab the value and remaining seconds, and add it to
+    # the time string
+    for suffix, length in parts:
+        value = seconds / length
+        if value > 0:
+            seconds = seconds % length
+            time.append('%s%s' % (str(value),(suffix, (suffix, suffix + 's')[value > 1])[add_s]))
+        if seconds < 1:
+            break
+    return separator.join(time)
 # Register your models here.
-admin.site.register(CategoryFieldValue)
-admin.site.register(CategoryField)
-admin.site.register(Category)
-admin.site.register(Podcast)
-admin.site.register(PlayHistory)
+
+
+class PlayHistoryAdmin(admin.ModelAdmin):
+    list_display = ['ini', 'end', 'Podcast', 'Audio', 'Reproducciones']
+    ordering=['ini']
+
+    def Audio(self,instance):
+        object_type= instance.content_type.name
+        if  object_type==u'episode':
+            audio = Episode.objects.get(pk=instance.object_id)
+            return audio
+    def Podcast(self,instance):
+        object_type= instance.content_type.name
+        if  object_type==u'episode':
+            podcast = Episode.objects.get(pk=instance.object_id).podcast
+            return podcast
+    def Reproducciones(self,instance):
+        object_type= instance.content_type.name
+        if  object_type==u'episode':
+            times = Episode.objects.get(pk=instance.object_id).times_played
+            return times
+
+
+class EpisodeAdmin(admin.ModelAdmin):
+    list_display = ['titulo', 'Podcast', '_date_published','_date_downloaded', 'Duracion', 'times_played']
+    ordering = ['-_date_downloaded']
+    date_hierarchy = '_date_downloaded'
+
+    def Podcast(self,instance):
+        return Podcast.objects.get(pk=instance.podcast_id).nombre
+
+    def Duracion(self,instance):
+        return elapsed_time(instance.duration, separator=':')
+
+
+class EpisodeInline(admin.StackedInline):
+    model = Episode
+    fields = ['times_played', '_filename']
+    ordering = ['-_date_published']
+
+class LiveEntryAdmin(admin.ModelAdmin):
+    list_display = ['user', 'artist', 'event_title', 'cover_file', 'start_date', 'end_date']
+    ordering = ['-start_date']
+
+class PodcastAdmin(admin.ModelAdmin):
+    list_display = ['nombre', 'rssfeed', 'web', 'activo', ]
+    inlines = [EpisodeInline,]
+
+
+from django.contrib.admin.models import LogEntry, DELETION
+from django.utils.html import escape
+from django.core.urlresolvers import reverse
+
+'''
+class LogEntryAdmin(admin.ModelAdmin):
+
+    date_hierarchy = 'action_time'
+
+    readonly_fields = LogEntry._meta.get_all_field_names()
+
+    list_filter = [
+        'user',
+        'content_type',
+        'action_flag'
+    ]
+
+    search_fields = [
+        'object_repr',
+        'change_message'
+    ]
+
+
+    list_display = [
+        'action_time',
+        'user',
+        'content_type',
+        'object_link',
+        'action_flag',
+        'change_message',
+    ]
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return request.user.is_superuser and request.method != 'POST'
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def object_link(self, obj):
+        if obj.action_flag == DELETION:
+            link = escape(obj.object_repr)
+        else:
+            ct = obj.content_type
+            link = u'<a href="%s">%s</a>' % (
+                reverse('admin:%s_%s_change' % (ct.app_label, ct.model), args=[obj.object_id]),
+                escape(obj.object_repr),
+            )
+        return link
+    object_link.allow_tags = True
+    object_link.admin_order_field = 'object_repr'
+    object_link.short_description = u'object'
+
+    def queryset(self, request):
+        return super(LogEntryAdmin, self).queryset(request) \
+            .prefetch_related('content_type')
+
+'''
+#admin.site.register(LogEntry, LogEntryAdmin)
+admin.site.register(Categoria)
+admin.site.register(Podcast, PodcastAdmin)
+admin.site.register(Episode, EpisodeAdmin)
+admin.site.register(PlayHistory, PlayHistoryAdmin)
 admin.site.register(Promotion)
-admin.site.register(Episode)
+admin.site.register(LiveEntry, LiveEntryAdmin)
+
+
+
