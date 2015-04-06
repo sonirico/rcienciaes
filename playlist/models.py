@@ -386,7 +386,9 @@ class LiveEntry(models.Model):
         else:
             return str(os.path.join(STATIC_URL, LIVE_COVERS_FOLDER, self.cover_file))
 
-
+    class Meta:
+        verbose_name = u'Live entries'
+        verbose_name_plural = u'Live entries'
 
 
 
