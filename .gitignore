@@ -55,3 +55,50 @@ docs/_build/
 
 # PyBuilder
 target/
+
+# ------------------------------------------------------------------------
+
+# Think what to do with this:
+
+
+# Don't take care about static files (css, js ... )
+
+static/
+
+# PyCharm settings folder
+
+.idea/
+
+# What about compiled files?
+
+*.pyc
+
+# Migrations don't provide useful information, do they?
+
+*/migrations
+
+
+# Just being careful about the audios
+
+*.mp3
+*.m4a
+
+# Silence is golden ...
+
+*.log
+*.sql
+*.sqlite
+*.sqlite3
+*.db
+
+# When usgin vi(m)
+
+*.swp
+
+# But making sure every python file is included
+
+!*.py
+
+# Except settings. VERY Sensitive data is stored there.
+
+*settings.py
