@@ -24,7 +24,7 @@ CELERYBEAT_SCHEDULER = 'djcelery.schedulers.DatabaseScheduler'
 # See https://docs.djangoproject.com/en/1.6/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'dd8#o#d-^oq%dfon@6fhboc60h+8j91)$&o)q3cumc7^s)7pc3'
+SECRET_KEY = 'hackme'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
@@ -32,9 +32,9 @@ TEMPLATE_DEBUG = True
 
 TEMPLATE_DIRS = [os.path.join(BASE_DIR, 'templates')]
 
-DOMAIN = 'vps84666.ovh.net'
+DOMAIN = 'example.com'
 PORT = '8080'
-ALLOWED_HOSTS = [str('.' + DOMAIN), '127.0.0.1', '81.21.67.10', '37.59.103.142',]
+ALLOWED_HOSTS = [str('.' + DOMAIN), '127.0.0.1',]
 
 SAVE_SESSION_EVERY_REQUEST = True
 # Application definition
@@ -127,10 +127,10 @@ LIVE_COVERS_FOLDER = 'images/live_covers/'
 
 # Twitter settings
 TWITTER_OAUTH = {}
-TWITTER_OAUTH['ACCESS_TOKEN'] = '2594779706-Q7PJSr99AUILfwiGOaT3Rjvmycnx8pxl1xfoI9s'
-TWITTER_OAUTH['ACCESS_TOKEN_SECRET'] = '4t53MZ7UZeqmJP7nSsxEiOjxv3NBY62ASzwD5slyaK8s6'
-TWITTER_OAUTH['CONSUMER_KEY'] = '1ciuvSM3ZvEmygyunNEsnvVs7'
-TWITTER_OAUTH['CONSUMER_KEY_SECRET'] = '9ZhbhOtf26nrJUVKat7uUiiZNQZTU36tbm4EPwL5WCEaNhyEZ6'
+TWITTER_OAUTH['ACCESS_TOKEN'] = 'hackme'
+TWITTER_OAUTH['ACCESS_TOKEN_SECRET'] = 'hackme'
+TWITTER_OAUTH['CONSUMER_KEY'] = 'hackme'
+TWITTER_OAUTH['CONSUMER_KEY_SECRET'] = 'hackme'
 
 LOGGING = {
     'version': 1,
