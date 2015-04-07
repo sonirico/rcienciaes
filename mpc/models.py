@@ -1,6 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import errno
+from socket import error as socket_error
 from mpd import MPDClient
+
+
+class MPDCConnectionError(Exception):
+    def __init__(self):
+        print('MPD: Connection refused')
 
 
 class MPDC():
@@ -25,6 +32,11 @@ class MPDC():
             server = self.settings['server']
         if port is None:
             port = self.settings['port']
-        self.client.connect(server, port)
-
-#EOF
+        try:
+            self.client.connect(server, port)
+        except socket_error as s_e:
+            if s_e.errno == errno.ECONNREFUSED:
+                # Connection refused. MPD is probably down.
+                raise MPDCConnectionError
+            return False
+        return True
