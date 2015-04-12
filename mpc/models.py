@@ -6,8 +6,7 @@ from mpd import MPDClient
 
 
 class MPDCConnectionError(Exception):
-    def __init__(self):
-        print('MPD: Connection refused')
+    pass
 
 
 class MPDC():
@@ -37,6 +36,6 @@ class MPDC():
         except socket_error as s_e:
             if s_e.errno == errno.ECONNREFUSED:
                 # Connection refused. MPD is probably down.
-                raise MPDCConnectionError
+                raise MPDCConnectionError('MPD: Failed to load.')
             return False
         return True
