@@ -1,15 +1,14 @@
-from django.conf.urls import patterns, include, url
-
+from django.conf.urls import include, url
 from django.contrib import admin
+from demo.views import index
 
-#from player.views import *
 
-admin.autodiscover()
-
-urlpatterns = patterns('',
+urlpatterns = [
+    url(r'^$', index),
     url(r'^api/', include('api.urls')),
     url(r'^grappelli/', include('grappelli.urls')),
-    url(r'^player/', include('player.urls', namespace="player")),
+    url(r'^player/', include('player.urls')),
     url(r'^playlist/', include('playlist.urls')),
+    url(r'^stats/', include('statistics.urls')),
     url(r'^admin/', include(admin.site.urls)),
-)
+]

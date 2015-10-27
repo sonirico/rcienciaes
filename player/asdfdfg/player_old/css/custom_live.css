@@ -1,0 +1,73 @@
+/* Redimensionamos el reproductor */
+#player_box {
+    width: 100%;
+}
+
+#player_control_panel {
+    width: 60%;
+    float: left;
+}
+
+div#div_tweet_form{
+    float: right;
+}
+
+#div_status_container{
+    width: auto !important;
+}
+
+div#div_tweet_form > *{
+    float: left;
+    margin-left: 3px;
+}
+
+div#div_tweet_form img{
+    margin-top: 30px;
+    margin-right: 10px;
+}
+
+div#div_tweet_form #chars{
+    clear: both;
+    font-weight: bold;
+}
+
+#input_submiter{
+    float: right;
+    margin-top: 10px;
+}
+
+div#div_tweet_form form textarea{
+    resize: none;
+    width: 300px;
+    height: 100px;
+}
+
+#div_live{
+    clear: both;
+}
+
+#tweet_status{
+    font-weight: bold;
+}
+
+.wrong{
+    color: red;
+}
+
+.right{
+    color: green;
+}
+
+#div_live_descripcion{
+    float: left;
+    width: 60%;
+}
+
+#live_button{
+    float: right;
+    width: 30%;
+}
+
+#live_button > *{
+    float: right;
+}

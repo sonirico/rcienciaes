@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+    <h2>Audio List</h2>
+
+    <ul>
+        {% for audio in audio_list %}
+            <li>{{ audio.title }}</li>
+        {% empty %}
+            <li>No audios yet</li>
+        {% endfor %}
+    </ul>
+
+
+{% endblock %}

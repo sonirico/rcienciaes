@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% load staticfiles %}
+
+{% block extrastyle %}
+    <link href="{% static 'statistics/css/custom.css' %}" rel="stylesheet" />
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    {% block sidebar %}
+
+        <div class="col-xs-12 col-sm-3 col-md-2 sidebar">
+            <div class="container-fluid" >
+                <ul class="nav nav-sidebar" >
+                    <li class="active" ><a href="/stats/" >Timeline</a></li>
+                    <li><a href="/stats/between-dates/" >Between 2 dates</a></li>
+                    <li><a href="/stats/" >Some interesting stuff</a></li>
+                </ul>
+            </div>
+        </div>
+    {% endblock%}
+
+    {% block main %}
+        <div class="col-xs-12 col-sm-9 col-md-10" >
+            <h1>hello stats</h1>
+            {% for entry in object_list %}
+            {{entry.history_entry}} -> {{entry.total_listeners}} | {{entry.current_listeners}} | {{entry.taken_at|date:"Y:m:d H:i:s"}}<br/>
+            {% endfor %}
+        </div>
+    {% endblock %}
+
+{% endblock %}
+</div>
+
+{% block footer %}
+{% endblock %}

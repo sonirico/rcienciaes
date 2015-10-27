@@ -1,0 +1,191 @@
+{# Although base.html is at the same folder, class-based views #}
+{% extends "player/base.html" %}
+
+
+{% load staticfiles %}
+
+{% block extrastyle %}
+    <link href="{% static 'css/bootstrap3_player.css' %}" rel="stylesheet" />
+    <link href="{% static 'css/custom.css' %}" rel="stylesheet" />
+    <!-- BOOTGRID -->
+    <link href="{% static 'css/jquery.bootgrid.min.css' %}" rel="stylesheet" />
+    <style>
+        /* TODO: Change class id for cat slug*/
+        {% for c in category_list %}
+            {% if c.color %}
+                .color-{{ c.id }}{
+                    background-color: {{ c.color }} !important;
+                    font-weight: bold;
+                }
+            {% endif %}
+        {% endfor %}
+    </style>
+{% endblock %}
+
+
+{% block content %}
+
+    {% block player %}
+        <!-- Player
+        <div class="col-xs-12 col-sm-12 col-md-4 col-lg-4" >
+            <audio controls
+                data-info-album-art="https://farm9.staticflickr.com/8642/16106988340_058071cdbe_z.jpg"
+                data-info-album-title="8874"
+                data-info-artist="Iain Houston and Felix Gibbons"
+                data-info-title="BeBop Aliens"
+                data-info-label="Independent"
+                data-info-year="2005"
+                data-info-att="Music: Iain Houston and Felix Gibbons."
+                data-info-att-link="https://github.com/iainhouston" >
+
+                <source src="http://katodia.com:8000/mpd" type="audio/mp3" />
+                <source src="http://katodia.com:8000/mpd" type="audio/mpeg" />
+
+                <a href="http://playerdemo.iainhouston.com/tests/BeBopAliens.mp3">BeBopAliens</a>
+                An html5-capable browser is required to play this audio.
+
+            </audio>
+        </div>-->
+    {% endblock %}
+
+    {% block playlist %}
+        <!-- Playlist -->
+        <div class="row" >
+            <div class="col-xs-12" >
+
+                <table id="grid-basic" class="table table-condensed table-hover" >
+                    <thead>
+                        <tr>
+                            <th data-column-id="audio_css_class" data-visible="false" >CSS</th>
+
+                            <th data-column-id="pos"
+                                data-formatter="nice_pos"
+                                data-type="numeric"
+                                data-identifier="true"
+                                data-order="asc" >
+                                Pitch
+                            </th>
+
+                            <th data-column-id="audio_title" >Title</th>
+
+                            <th data-column-id="audio_type" >Type</th>
+
+                            <th data-column-id="podcast_name" >Podcast</th>
+
+                            <th data-column-id="audio_duration"
+                                data-formatter="humanized_duration"
+                                data-type="numeric"
+                                data-align="right"
+                                data-header-align="center" >
+                                Duration
+                            </th>
+
+                            <th data-column-id="audio_times_played"
+                                data-formatter="times_played"
+                                data-align="center"
+                                data-header-align="center" >
+                                Times played
+                            </th>
+
+                            <th data-column-id="audio_last_played" >
+                                Last played at
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for audio in audio_list %}
+                            <tr>
+                                {% if audio.get_category.color %}
+                                    <td>color-{{ audio.get_category.id }}</td>
+                                {% else %}
+                                    <td></td>
+                                {% endif %}
+                                <!--<tr style="background-color: {{audio.get_color}} ! important;">-->
+                                <td>{{ forloop.counter0 }}</td>
+                                <td>
+                                    <a href="{{ audio.get_admin_url }}" target="_blank" >{{ audio.title }}</a>
+                                </td>
+                                <td>{{ audio.get_category_name }}</td>
+
+                                <td>
+                                    {% ifequal audio.get_category_name "episode" %}
+                                        <a href="{{ audio.get_admin_url }}" target="_blank" >
+                                            {{ audio.podcast.name }}
+                                        </a>
+                                    {% endifequal %}
+                                </td>
+                                <td>{{ audio.duration }}</td>
+                                <td>{{ audio.times_played }}</td>
+                                <td>
+                                    {% if audio.last_played_at %}
+                                        <a href="{{ audio.last_played_at.get_admin_url }}" target="_blank" >
+                                            {{ audio.last_played_at.started|date:'d-m-y H:i:s' }}
+                                        </a>
+                                    {% else %}
+                                        <span>Not played yet</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+            </div>
+        </div>
+    {% endblock %}
+
+
+    <script src="{% static 'js/bootstrap3_player.js' %}"></script>
+    <script src="{% static 'js/jquery.bootgrid.min.new.js' %}" ></script>
+    <script>
+
+        $(document).ready(function(){
+            $("#grid-basic").bootgrid({
+                rowCount: [-1, 10, 25, 50],
+                formatters: {
+                    "times_played": function(column, row)
+                    {
+                        if (row.audio_times_played > 0)
+                            return row.audio_times_played;
+                        else
+                            return "Not played yet";
+                    },
+                    "nice_pos": function(column, row)
+                    {
+                        return row.pos + 1;
+                    },
+                    "humanized_duration": function(column, row)
+                    {
+                        seconds = row.audio_duration;
+                        if (! seconds ) return '';
+                        hours   = String(parseInt(seconds / 3600));
+                        minutes = String(parseInt(seconds / 60) % 60);
+                        seconds = String(parseInt(seconds % 60));
+                        str = '';
+                        str += hours <= 0 ? '' : hours + 'h ';
+                        str += (minutes.length == 1 ? '0' + minutes : minutes) + 'm ';
+                        str += (seconds.length == 1 ? '0' + seconds : seconds) + 's ';
+                        return str;
+                    }
+                },
+                labels: {
+                    noResults: "No results."
+                }
+            });
+
+            $('tbody tr').addClass().each(function(){
+                var cssClass = $(this).data('cssClass');
+                if ( cssClass ){
+                    $(this).addClass(cssClass);
+                }
+            });
+
+
+        });
+
+
+    </script>
+
+{% endblock %}
+
+

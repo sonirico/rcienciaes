@@ -2,18 +2,21 @@
 # -*- coding: utf-8 -*-
 import json
 from datetime import datetime
+import sys
+
 from django.http import HttpResponse, Http404
 from django.shortcuts import render, redirect
-from mpc.models import MPDC
-from player.models import Player
 from django.contrib.admin.views.decorators import staff_member_required, user_passes_test
 from django.contrib.auth.decorators import login_required
-from playlist.models import Episode, PlayHistory
 from django.core.exceptions import ObjectDoesNotExist
+
+from mpc.models import MPDC
+from player.models import Player
+from playlist.models import Episode, PlaylistHistory as PlayHistory
 from forms import *
-from playlist.models import LiveEntry
+from live.models import LiveEntry
 from playlist.views import tweet
-import sys
+
 
 reload(sys)
 sys.setdefaultencoding("utf-8")
@@ -30,6 +33,7 @@ class EpisodeException(Exception):
 
 
 def get_playlist_data():
+    return HttpResponse('hola')
     player = Player()
     playlist = player.get_playlist_info()
     episode_list = []
@@ -60,8 +64,8 @@ def render_admin(request):
     data = get_playlist_data()
     return render(request, 'index.html', {
         'title': 'Reproductor',
-        'episode_list': data['episode_list'],
-        'total_time': data['total_time'],
+        #'episode_list': data['episode_list'],
+        #'total_time': data['total_time'],
     })
 
 
@@ -105,7 +109,7 @@ def render_podcaster(request):
 
 
 def index(request):
-    #Comprobamos si ya está en modo live
+    # Check whether there is someone already
     if request.session.get('is_live', False):
         return live(request)
     if request.user.is_authenticated():
@@ -117,20 +121,21 @@ def index(request):
     else:
         raise Http404
 
+@login_required
 @staff_member_required
 def mpd_action(request, action):
     c = MPDC()
     c.connect()
-    response = "La acción no existe"
     player = Player()
     for button in player.buttons:
         if action == button.action_name:
             button.action(c.client)
-            response = "OK"
             break
-    c.client.close()
-    return HttpResponse(response)
+    else:
+        raise Http404
+    return HttpResponse()
 
+@login_required
 @staff_member_required
 def mpd_rewfor(request, percent=-1):
     percent = int(percent)
@@ -145,6 +150,7 @@ def mpd_rewfor(request, percent=-1):
     c.client.close()
     return HttpResponse('Done')
 
+@login_required
 @staff_member_required
 def mpd_status(request):
     c = MPDC()
@@ -155,28 +161,19 @@ def mpd_status(request):
     c.client.close()
     return HttpResponse(response, content_type='application/json')
 
+@login_required
 @staff_member_required
 def mpd_play_song(request, song_pos):
     c = MPDC()
     c.connect()
-    response = 'Nothing to do'
-    for song in c.client.playlistinfo():
-        if song['pos'] == song_pos:
+    for entry in c.client.playlistinfo():
+        if entry.get('pos') == song_pos:
             c.client.play(int(song_pos))
-            response = 'Done'
+            break
     c.client.close()
-    return HttpResponse(response)
+    return HttpResponse()
 
-@staff_member_required
-def refresh_covers(request):
-    episodes = Episode.objects.all()
-    for e in episodes:
-        print ('Creating cover for %s with file %s ... ' % (e.titulo, e._filename))
-        try:
-            e.create_cover()
-        except CoverException:
-            pass
-    return HttpResponse('ok')
+
 
 
 def get_cover(request, episode_id):
@@ -203,7 +200,10 @@ def live(request):
         form = TweetForm(request.POST)
         if form.is_valid():
             cd = form.cleaned_data
-            tweet = cd['content']
+            tweet_content = cd['content']
+            if len(tweet_content) > 0:
+                tweet(unicode(tweet_content))
+                return HttpResponse('')
             # Enviar tuit
     form = TweetForm()
     return render(request, 'live.html', {
@@ -242,11 +242,13 @@ def out(request):
 
 # Extra functions
 
+
 def podcaster_in_the_air():
     try:
         last_live_entry = LiveEntry.objects.latest('start_date')
         return bool(last_live_entry.end_date is None)
-    except ObjectDoesNotExist:
+    except ObjectDoesNotExist, e:
+        # There are no entries yet, so True
         return False
 
 
@@ -269,3 +271,33 @@ def play():
         c.client.close()
     except Exception, e:
         print e
+
+
+from django.views.generic import ListView
+from playlist.models import PlayListManager
+from playlist.models import Audio, Category
+from podcastmanager.settings import AUDIOS_URL
+
+
+class PlayerView(ListView):
+    title = 'Player'
+    template_name = 'player/index.html'
+
+    def get_context_data(self, **kwargs):
+        context = super(PlayerView, self).get_context_data(**kwargs)
+        context['audio_list'] = self.queryset
+        context['category_list'] = Category.objects.all()
+        context['title'] = self.title
+        return context
+
+    def get_queryset(self):
+        pm = PlayListManager()
+        audio_list = []
+        files_in_playlist = pm.get_files_in_playlist(folder=AUDIOS_URL)
+        online_audios = Audio.objects.filter(filename__in=files_in_playlist)  # Returns unordered audio batch
+        for file_name in files_in_playlist:
+            try:
+                audio_list.append(online_audios.get(filename=file_name))
+            except ObjectDoesNotExist:
+                pass
+        self.queryset = audio_list

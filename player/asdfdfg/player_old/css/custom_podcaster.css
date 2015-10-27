@@ -1,0 +1,233 @@
+/*
+    podcast manager CSS
+*/
+
+#player_box, .playlist{
+    width:100%;
+}
+
+#player_control_panel{
+    width:80%;
+}
+
+/* ul */
+#buttons_container
+{
+    list-style: none;
+    margin: 0;
+    float: left;
+    margin-right: 15px;
+}
+
+ul li{
+    display:block;
+    float:left;
+    list-style:none;
+    padding: 0 !important;
+}
+
+.div_action_button
+{
+    float: left;
+}
+
+.div_action_button:hover
+{
+    cursor: pointer;
+}
+
+.playlist
+{
+    float:left;
+}
+
+.active
+{
+    color: #444;
+    font-size: 20px;
+    border: 2px solid #444;
+}
+/* Tanto <progress> como <time> deben tener mismo margin  y height*/
+#progressbar_container
+{
+    float: left;
+    margin: 15px 0 15px 0;
+}
+
+
+progress {
+    float:left;
+    border: 0 none;
+    border-radius: 9px;
+    height: 10px;
+    width: 400px;
+    margin-right: 0;
+    clear: both;
+}
+
+time
+{
+    float: left;
+    height: 10px;
+    font-size: 11px;
+    font-weight: bold;
+    color: #222;
+    clear: both;
+}
+
+progress::-webkit-progress-bar {
+    color:green;
+}
+progress::-webkit-progress-value {
+    /* style rules */
+}
+progress::-moz-progress-bar {
+    background-color:green;
+    border-radius: 9px;
+}
+
+.little_image:hover
+{
+    cursor: pointer;
+}
+
+#status
+{
+    padding: 2px;
+    margin-bottom: 5px;
+    background-color: white;
+    color: #0174DF;
+    font-weight: bold;
+}
+
+#status:hover
+{
+    cursor: pointer;
+}
+
+#table_playlist
+{
+    border-collapse: collapse;
+    border: 0;
+}
+
+#table_playlist tr
+{
+    border-bottom: 1px solid #E1EAF1;
+}
+#table_playlist tr:hover
+{
+    background-color: #F5FAFE;
+}
+
+#table_playlist tr.active
+{
+    background-color: #555;
+    color: white;
+    border: 0;
+}
+
+tr.active td
+{
+    font-weight: bold;
+}
+
+.centered{
+    text-align: center !important;
+}
+
+#table_playlist td
+{
+    padding: 3px;
+    vertical-align: middle;
+    border: 0;
+}
+
+img.img_cover
+{
+    width: 40px;
+    height: 40px;
+}
+
+.td_time
+{
+    text-align: right;
+}
+
+
+/* Centering the play-it button in the middle of the cell.
+FROM HERE
+*/
+.td_play-it
+{
+    text-align: center;
+}
+
+.div_play-it
+{
+    display: inline-block;
+}
+/* To here */
+
+/* Estilo del formulario */
+
+#form_live table, tr, td, th {
+    border: 0 !important;
+    padding: 15px 0 15px 0 !important;
+}
+
+#form_live td{
+    padding-left: 15px !important;
+}
+
+#form_live input[type="file"]{
+    border: 0 !important;
+}
+
+#form_live input[type="text"], textarea{
+    width: 300px !important;
+}
+
+#form_live textarea{
+    resize: none;
+    height: 100px;
+}
+
+#textarea_container{
+    margin-top: 10px;
+}
+
+/* Errores de jQuery steps/validator */
+label.error{
+    margin-left: 0 !important;
+    margin-top: 1em !important;
+}
+
+/*Ancla de subir arriba*/
+
+#back-top a {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    color: #EEE;
+    background-color: rgba(0, 0, 0, 0.3);
+    transition: all 0.25s ease 0s;
+    padding: 10px;
+    border-radius: 5px;
+    text-align: center;
+}
+#back-top a:hover {
+    background-color: rgba(0, 0, 0, 0.7);
+    cursor: pointer;
+}
+.fa-chevron-up:before {
+    content: "Go Top ↑";
+}
+#back-top a i {
+}
+.fa {
+    display: inline-block;
+    font-style: normal;
+    font-weight: normal;
+    line-height: 1;
+}

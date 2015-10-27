@@ -1,403 +1,333 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+# -*- coding: UTF-8 -*-
 
-
-from django.db import models
-from django.contrib.auth.models import User
-from django.contrib.contenttypes import generic
+from django.db import models, IntegrityError
+from django.contrib.contenttypes.models import ContentType
 from django.utils import timezone
-from djcelery.models import PeriodicTask, IntervalSchedule
-from mutagen import File
-from datetime import datetime
-from podcastmanager.settings import BASE_DIR, STATIC_ROOT, LIVE_COVERS_FOLDER, STATIC_URL
+
+from podcastmanager.settings import BASE_DIR, LIVE_COVERS_FOLDER, STATIC_URL, AUDIOS_URL, COVERS_URL, DEFAULT_COVER_IMAGE, REMOTE_COVERS_URI
 from django.core.exceptions import ObjectDoesNotExist
 from django.core import urlresolvers
-from django.contrib.contenttypes.models import ContentType
+from polymorphic import PolymorphicModel
+from colorful.fields import RGBColorField
 import os
+import logging
+
+from django.db.models.signals import post_delete, post_save
+from tools.filehandler import file_cleanup, calculate_duration
+
+logger = logging.getLogger(__name__)
 
 
-class PlayHistory(models.Model):
-    ini = models.DateTimeField("Inicio", null=True)
-    end = models.DateTimeField("Fin", null=True)
-    content_type = models.ForeignKey(ContentType)
-    object_id = models.PositiveIntegerField()
-    content_object = generic.GenericForeignKey('content_type', 'object_id')
-
-    class Meta:
-        verbose_name = (u'Historial de reproducciones')
-        verbose_name_plural = verbose_name
-
-    def stop(self):
-        self.end = timezone.now()
-        self.save()
-
-    def get_admin_url(self):
-        content_type = ContentType.objects.get_for_model(self.__class__)
-        return urlresolvers.reverse("admin:%s_%s_change" % (content_type.app_label, content_type.model), args=(self.id,))
-
-class Categoria(models.Model):
-    nombre = models.CharField("Nombre", max_length=250)
-    max_reproducciones = models.PositiveIntegerField("Número de reproducciones totales", default=1)
-
-    def get_associated_podcasts(self):
-        return Podcast.objects.filter(categoria=self)
-
-    def __unicode__(self):
-        return self.nombre
-
-
-class Podcast(models.Model):
-    nombre = models.CharField("Nombre del podcast", max_length=250, unique=False)
-    descripcion = models.TextField("Descripción", blank=True)
-    rssfeed = models.URLField("URL del feed RSS", unique=True)
-    web = models.URLField("Página web")
-    activo = models.BooleanField("¿Es un podcast activo actualmente?", default=True)
-    categoria = models.ForeignKey(Categoria)
-    # episode_active = models.IntegerField(blank=True,null=False,default=0)#,related_name='Episodio del podcast que suena o esta activo actualmente.')
-    # episode_active = models.ForeignKey('Episode',null=True,default=None,related_name='Episodio del podcast que suena o esta activo actualmente.')
-    # Episode Como string debido a la dependencia circular. related_name required.
-
-    def __unicode__(self):
-        return self.nombre
-
-
-    # Asigna el numero maximo de reproducciones del porcas
-    def set_max_repro(self, max_repro=1):
-        self.max_play = max_repro
-        self.save()
-
-    # Asigna como el epidosio actual el pasado como parametro
-    def set_active_episode(self, episode=None):
-        if episode is not None:
-            self.active_episode = episode
-            self.save()
-
-    # TODO: Calcular en meses el intervalo de tiempo que han estado sin publicar episodios
-    # Si excede los 6 meses, se marcará como inactivo
-    def set_active(self):
-        pass
-
-    def is_active(self):
-        return self.activo
-
-    def get_category(self):
-        return self.categoria
-        #return Categoria.objects.get(pk=self.categoria.id)
-
-    def get_max_repro(self):
-        return self.categoria.max_reproducciones
-
-    def get_current_audio(self):
-        current_audio = Episode.objects.get(pk=self.active_episode)
-        if current_audio is not None:
-            return current_audio
-        return None
-
-    def get_admin_url(self):
-        content_type = ContentType.objects.get_for_model(self.__class__)
-        return urlresolvers.reverse("admin:%s_%s_change" % (content_type.app_label, content_type.model), args=(self.id,))
-
-    # TODO:  Implementar el borrado de imagenes cuyos episodios no están en la BBDD
-    def remove_old_covers(self):
-        id_episodio = 0
-        try:
-            if self.active_episode is not None:
-                id_episodio = self.active_episode.id
-        except ObjectDoesNotExist:
-            print 'No active episode. Do you want I remove all audios?'
-        print id_episodio
-        related_episodes = Episode.objects.filter(podcast=self).exclude(pk=id_episodio)
-        if not related_episodes.exists():
-            print 'Nothing to do, nothing to remove.'
-            return
-        for episode in related_episodes:
-            episode.remove_cover()
-
-    # Elimina los archivos de audio relativos a sus episodios, menos el episodio activo
-    def remove_old_files(self):
-        try:
-            if self.active_episode is None:
-                return
-        except ObjectDoesNotExist:
-            print 'No active episode. Do you want I remove all audios?'
-            return
-        # IMPORTANTE. Esta operacion, se llevara a cabo siempre que los audios sean mas de 1
-        # ya que podría haber inconsistencia en la BBDD, y borrar un audio que aun tenga que sonar.
-        # Selecciona los audios de este podcast
-        related_episodes = Episode.objects.filter(podcast=self)
-        if related_episodes.count() > 1:
-            # Y además, no pueder ser el actual.
-            related_episodes = related_episodes.exclude(id=self.active_episode.id)
-            if not related_episodes.exists():
-                print 'Nothing to do, nothing to remove.'
-                return
-            for episode in related_episodes:
-                # Borramos las covers antiguas
-                episode.remove_cover()
-                old_audio_file = episode.get_relative_path()
-                if os.path.isfile(old_audio_file):
-                    os.remove(old_audio_file)
-                    if os.path.isfile(old_audio_file):
-                        print('Unable to remove %s' % old_audio_file)
-                    else:
-                        print('Removed successfully %s' % old_audio_file)
-# End Podcast
-
-
-class Sound(models.Model):
-    times_played = models.IntegerField(default=0)
-    duration = models.FloatField(default=0)
-
+class AdminBrowsableObject(models.Model):
     class Meta:
         abstract = True
 
-    def play(self):
-        ph = PlayHistory.objects.create(
-            ini=timezone.now(),
-            content_object=self
+    def get_admin_url(self):
+        content_type = ContentType.objects.get_for_model(self.__class__)
+        return urlresolvers.reverse(
+            "admin:%s_%s_change" % (content_type.app_label, content_type.model), args=(self.id,)
         )
+
+
+class Category(PolymorphicModel, AdminBrowsableObject):
+    name = models.CharField(max_length=100, verbose_name=u'Name of the category')
+    slug = models.SlugField(max_length=120, editable=False, null=True, blank=True)
+    color = RGBColorField(null=True, blank=True)
+
+    def __unicode__(self):
+        return self.name
+
+
+class PodcastCategory(Category):
+    max_times_played = models.PositiveIntegerField(default=8, verbose_name=u'Max times to play (iterations)')
+    max_duration = models.PositiveIntegerField(verbose_name=u'Max duration (seconds)')
+    days_to_expiration = models.PositiveIntegerField(verbose_name=u'Last episode expiration (days)', default=90)
+    days_to_inactive = models.PositiveIntegerField(
+        verbose_name=u'Mark podcast as inactive after X days since its last episode',
+        default=90)
+
+    class Meta:
+        verbose_name = u'Categorías de Podcast'
+        verbose_name_plural = u'Categorías de Podcast'
+
+
+class PromoCategory(Category):
+    time_interval = models.PositiveIntegerField(
+        verbose_name=u'Time lapse for being displayed on the playlist (seconds)')
+    expire = models.BooleanField(default=False, verbose_name=u'Does this kind of promos expire?')
+    days_to_expiration = models.PositiveIntegerField(verbose_name=u'How long make promos expire (days)', default=90)
+
+    class Meta:
+        verbose_name = u'Categorías de Promos'
+        verbose_name_plural = u'Categorías de Promos'
+
+
+class Audio(PolymorphicModel, AdminBrowsableObject):
+    title = models.CharField(max_length=250, verbose_name=u'Title of the audio')
+    duration = models.PositiveIntegerField(default=0, null=True, verbose_name=u'Duration (seconds)')
+    filename = models.FileField(upload_to=AUDIOS_URL, verbose_name=u'Audio file')
+    cover = models.ImageField(null=True, blank=True, upload_to=COVERS_URL)
+    times_played = models.PositiveIntegerField(default=0, verbose_name=u'Times played')
+
+    def play(self):
+        history_entry = PlaylistHistory(audio=self)
+        history_entry.save()
         self.times_played += 1
         self.save()
-        ph.save()
-        return ph
+        return history_entry
 
+    def stop(self):
+        pass
 
-class Episode(Sound):
-    podcast = models.ForeignKey(Podcast)
-    url = models.URLField(unique=False)
-    titulo = models.CharField(max_length=250)
-    #descripcion = models.TextField()
-    _local_path = models.CharField(max_length=250)
-    _filename = models.CharField(max_length=250)
-    _date_published = models.DateTimeField(null=True, blank=True)
-    _date_downloaded = models.DateTimeField(null=True, blank=True)
-    _image_filename = models.CharField("Imagen", max_length=500)
+    def get_color(self):
+        pass
 
-    # HORRIBLE HACK
-    DEFAULT_IMAGE = 'default.png'
-    DEFAULT_EXT = '.jpg'
-    RELATIVE_COVERS_DIR = STATIC_ROOT  + 'images/covers/'
-
-    # Limitamos el título visible a 30 caracteres
-    def short_name(self):
+    def short_title(self):
+        """
+            Limit title length to a hardcoded number when displaying on views
+            :return: Formatted title
+        """
         if len(self.titulo) > 30:
             return str(self.titulo[:30] + ' ... ')
         else:
             return self.titulo
 
-    def __unicode__(self):
-        return unicode(self.titulo)
+    def thumbnail(self):
+        """
+        Not a fan of this
+        :return:
+        """
+        return u'<img src="/%s" title="%s" with="32" height="32" />' % (
+            os.path.join(COVERS_URL, self.get_cover()),
+            self.title
+        )
+    thumbnail.allow_tags = True
 
-    # Checa si un episdio es el ultimo que ha estado sonado y que no haya terminado
-    def has_not_finished(self):
-        history = PlayHistory.objects.all()
-        if history.count() < 1:
+    def get_cover(self):
+        """
+        :return: String. File name of the image of the audio
+        """
+        if self.cover is not None and len(self.cover.name) > 0:
+            return os.path.basename(self.cover.name)
+        else:
             return False
-        last_entry = history.latest('ini')
-        last_episode = last_entry.content_object
-        if last_episode.get_file_name() == self._filename:
-            return last_entry.end is None # Devolvera verdadero si no ha terminado
-        return False
 
-    def set_active(self):
-        related_podcast = Podcast.objects.get(pk=self.podcast.id)
-        related_podcast.active_episode = self
-        related_podcast.save()
+    def get_remote_cover_uri(self):
+        cover_name = self.get_cover()
+        if not cover_name:
+            return None
+        else:
+            return os.path.join(REMOTE_COVERS_URI, cover_name)
 
-    def remove_file(self):
-        if os.path.isfile(self.get_relative_path()):
-            os.remove(self.get_relative_path())
+    def get_filename(self):
+        """
+            Since filename field stores the relative path of the audio file,
+            we have to separate it from its parent folder
+        :return: Original name
+        """
+        if self.filename is not None and len(self.filename.name) > 0:
+            return os.path.basename(self.filename.name)
+        else:
+            return False
 
-    def remove_cover(self):
-        if self._image_filename != self.DEFAULT_IMAGE:
-            path = self.RELATIVE_COVERS_DIR + self._image_filename
-            if os.path.isfile(path):
-                os.remove(path)
-                if os.path.isfile(path):
-                    print 'Failed to remove old cover: %s' % path
-                else:
-                    print 'File removed successfully: %s' % path
+    def get_category_name(self):
+        if self.get_type() == 'episode':
+            return 'episode'
+        else:
+            return unicode(self.category.name)
 
-    # Crea el thumbnail relacionado con cada audio visible en la lista de reproducción
-    def create_cover(self):
-        self._image_filename = self.DEFAULT_IMAGE
-        self.save()
-        if self._filename is None:
-            print ('No audio in db: ' + self.__unicode__())
-            return
-        path_to_file = self._local_path + self._filename
-        if not os.path.isfile(path_to_file):
-            print ('No audio "%s" in path %s: ' % (self.__unicode__(), path_to_file))
-            return
+    def get_type(self):
+        # Yes, I prefer this instead of using ContentType library. Problem?
+        return self.__class__.__name__.lower()
+
+    def last_played_at(self):
         try:
-            audio = File(path_to_file)
-            print 'Audio abierto'
-            image_content = audio.tags['APIC:'].data
-            if image_content is not None and len(image_content) > 0:
-                print 'Hay ontenido'
-                self._image_filename = self._filename + self.DEFAULT_EXT
-                final_path = os.path.join(self.RELATIVE_COVERS_DIR, self._image_filename)
-                print 'Final path ' + final_path
-                # Check if a same-named file exists. If True, overwrite it.
-                if os.path.isfile(final_path):
-                    os.remove(final_path)
-                with open(final_path, 'wb') as cover:
-                    cover.write(image_content)
-                    cover.close()
-                    self.save()
-        except:
-            print 'Unable to create cover'
+            plh = self.playlisthistory_set.latest('started')
+            return plh
+        except ObjectDoesNotExist:
+            return False
+            # PlaylistHistory.objects.all
 
-    def get_relative_path(self):
-        return self._local_path + self._filename
+    def get_category(self):
+        pass
 
-    def get_local_path(self):
-        return self._local_path
+    def is_active(self):
+        """
+            @Overriden
+            :return:
+        """
+        pass
 
-    def get_file_name(self):
-        return self._filename
+    def delete_files(self):
+        self.delete_audio()
+        self.delete_cover()
 
-    def get_image_filename(self):
-        return self._image_filename
+    def delete_audio(self):
+        if self.filename and len(self.filename.name) > 0:
+            if os.path.isfile(self.filename.name):
+                logger.info('Erasing audio file: ' + self.filename.name)
+                os.remove(self.filename.name)
+                self.filename.name = ''
+                self.save()
 
-    def get_admin_url(self):
-        content_type = ContentType.objects.get_for_model(self.__class__)
-        return urlresolvers.reverse("admin:%s_%s_change" % (content_type.app_label, content_type.model), args=(self.id,))
-# End episodio
+    def delete_cover(self):
+        if self.cover and len(self.cover.name) > 0 and self.cover.name != DEFAULT_COVER_IMAGE:
+            name = os.path.basename(self.cover.name)
+            relative_path = os.path.join(COVERS_URL, name)
+            if os.path.isfile(relative_path):
+                os.remove(relative_path)
+                logger.info('Erasing cover file: ' + self.cover.name)
+        self.cover.name = DEFAULT_COVER_IMAGE
+        self.save()
 
-# Tras definir el "Episodio", resolvemos la dependencia circular con "Podcast" insertando la clave foranea
-# ahora
-
-Podcast.add_to_class(
-    'active_episode',
-    models.ForeignKey(Episode, default=0, null=True, blank=True, related_name='Episodio activo')
-)
-#
-# (1 podcast, 1 episodio activo)
+    def __unicode__(self):
+        return self.title
 
 
-class Promotion(Sound):
-    name = models.CharField(max_length=250, unique=True)
-    description = models.TextField(blank=True)
-    filename = models.FilePathField(max_length=250)
-    num_play_cycle = models.IntegerField(default=1)
+class Podcast(AdminBrowsableObject):
+    name = models.CharField(max_length=250, verbose_name=u'Podcast title')
+    description = models.TextField(max_length=512, verbose_name=u'Short description', blank=True, null=True)
+    feed = models.URLField(verbose_name=u'Feed RSS', unique=True)
+    website = models.URLField(verbose_name=u'Podcaster\'s website')
+    twitter = models.CharField(verbose_name=u'Twitter account', null=True, blank=True, max_length=32)
+    active = models.BooleanField(default=True)
+
+    category = models.ForeignKey(PodcastCategory, default=1)
+
+    def deactivate_all(self):
+        for episode in self.episode_set.all():
+            episode.active = False
+            episode.save()
+
+    def get_max_duration(self):
+        return self.category.max_duration
 
     def __unicode__(self):
         return self.name
 
-    def get_admin_url(self):
-        content_type = ContentType.objects.get_for_model(self.__class__)
-        return urlresolvers.reverse("admin:%s_%s_change" % (content_type.app_label, content_type.model), args=(self.id,))
 
-
-class TaskScheduler (models.Model):
-    periodic_task = models.ForeignKey(PeriodicTask)
-
-    @staticmethod
-    def schedule_every(task_name, period, every, args=None,kwargs=None):
-        """
-        schedules a task by name every "every" "period". Example:
-        TaskScheduler('mycustomtask','seconds',30,[1,2,3]) that would schedule your custom task run every 30 seconds
-        with the arguments 1,2, and 3 passed to the actual task
-        """
-
-        permissible_periods = ['days', 'hours', 'minutes', 'seconds']
-        if period not in permissible_periods:
-            raise Exception ('Invalid period especified')
-        #create periodic task and interval
-        ptask_name="%s_%s"%(task_name,datetime.now())
-        #create some name for the periodic task
-        interval_schedules=IntervalSchedule.objects.filter(period=period, every=every)
-        if interval_schedules:
-            #just check if interval schedules exist like that already and reuse em
-            interval_schedule=interval_schedules[0]
-        else:
-            #create a brand new interval schedule
-            interval_schedule=IntervalSchedule()
-            interval_schedule.every=every
-            interval_schedule.period=period
-            interval_schedule.save()
-        ptask = PeriodicTask(name=ptask_name,task=task_name,interval=interval_schedule)
-        if args:
-            ptask.args = args
-        if kwargs:
-            ptask.kwargs = kwargs
-        ptask.save()
-        return TaskScheduler.objects.create(periodic_task=ptask)
-
-    def stop(self):
-        ptask = self.periodic_task
-        ptask.enabled = False
-        ptask.save()
-
-    def start(self):
-        ptask = self.periodic_task
-        ptask.enabled = True
-        ptask.save()
-
-    def terminate(self):
-        self.stop()
-        ptask = self.periodic_task
-        self.delete()
-        ptask.delete()
-
-
-from django.contrib.auth.models import Group
-# Usuarios en directo. Tambien servira como registro. Se sabe que está un usuario en directo porque
-# si el campo end_date es nulo o no esta definido.
-
-
-class LiveEntry(models.Model):
-    user = models.ForeignKey(User, limit_choices_to={'groups__name': 'podcasters'}, verbose_name='Podcaster emitiendo en directo')
-    event_title = models.CharField(max_length=200, verbose_name='Titulo del evento')
-    artist = models.CharField(max_length=200, verbose_name='Artista/s en directo')
-    cover_file = models.CharField(max_length=200, null=True, verbose_name="Nombre del archivo que subieron")
-    start_date = models.DateTimeField(verbose_name='Empezo a emitir')
-    end_date = models.DateTimeField(null=True, verbose_name='Termino de emitir')
-
-    # HORRIBLE HACK
-    DEFAULT_IMAGE = 'default.png'
-
-    def user_was_podcaster(self):
-        try:
-            pod_group = Group.objects.get(name='podcasters')
-            return pod_group in self.user.groups
-        except ObjectDoesNotExist:
-            return False
-
-    # Guarda covers de los usuarios live. Nombre imagen = nombreusuario_fecha.extension
-    def handle_cover(self, cover_file):
-        if cover_file is not None:
-            extension = '.' + cover_file.name.split('.').pop()
-            p_filename = self.user.username + '_' + datetime.now().strftime("%Y%m%d%H%M%S") + extension
-            filename = os.path.join(STATIC_ROOT, LIVE_COVERS_FOLDER, p_filename)
-            with open(filename, 'wb+') as destination:
-                for chunk in cover_file.chunks():
-                    destination.write(chunk)
-                destination.close()
-                if not destination.closed:
-                    print 'Live user cover not closed.'
-            return p_filename
-        return None
-
-    def get_image_file(self):
-        if self.cover_file is None or len(self.cover_file) <= 0:
-            return str(os.path.join(STATIC_URL, LIVE_COVERS_FOLDER, self.DEFAULT_IMAGE))
-        else:
-            return str(os.path.join(STATIC_URL, LIVE_COVERS_FOLDER, self.cover_file))
+class Episode(Audio):
+    uri = models.URLField(verbose_name=u'File internet location', null=True, blank=True)
+    published = models.DateTimeField(
+        null=True, blank=True, auto_now=False, auto_now_add=False, verbose_name=u'Date released'
+    )
+    downloaded = models.DateTimeField(auto_now=False, auto_now_add=True, verbose_name=u'Date downloaded')
+    podcast = models.ForeignKey(Podcast)
 
     class Meta:
-        verbose_name = u'Live entries'
-        verbose_name_plural = u'Live entries'
+        verbose_name = u'Episode'
+        verbose_name_plural = u'Episodes'
 
+    def set_active(self):
+        self.podcast.active_episode = self
+        self.podcast.save()
+        self.save()
+
+    def get_category(self):
+        return self.podcast.category
+
+    def get_color(self):
+        return self.podcast.category.color
+
+    def is_active(self):
+        # Check days to expiration
+        days = (timezone.now() - self.downloaded).days
+        if days >= self.get_category().days_to_expiration:
+            return False
+        # Max times recorded reached
+        if self.times_played >= self.get_category().max_times_played:
+            return False
+        return True
+
+    def is_duplicated(self, episode_item):
+        # TODO: Use a dict and a for statement for this:
+        if episode_item.get('uri') == self.uri:
+            return True
+        if episode_item.get('filename') == self.filename.name:
+            return True
+        if episode_item.get('published') == self.published:
+            return True
+        if episode_item.get('title') == self.title:
+            return True
+        return False
+
+
+Podcast.add_to_class(
+    'active_episode',
+    models.ForeignKey(Episode, on_delete=models.SET(None), default=None, null=True, blank=True, related_name=u'active_episode')
+)
+
+
+class Promotion(Audio):
+    uploaded = models.DateTimeField(auto_now=False, auto_now_add=True, verbose_name=u'Registration date')
+    expiration = models.DateTimeField(
+        null=True, blank=True, auto_now=False, auto_now_add=False, verbose_name=u'When does it expire?'
+    )
+    tweet = models.TextField(max_length=140, verbose_name=u'Associated tweet', null=True, blank=True)
+    category = models.ForeignKey(PromoCategory)
+
+    class Meta:
+        verbose_name = u'Promo'
+        verbose_name_plural = u'Promos'
+
+    def get_interval(self):
+        return self.category.time_interval
+
+    def get_category(self):
+        return self.category
+
+    def get_color(self):
+        return self.category.color
+
+    def is_active(self):
+        # Scheduled Expiration date?
+        if self.expiration is not None:
+            days = (timezone.now() - self.expiration).days
+        # Does it expire?
+        elif bool(self.get_category().expire):
+            days = (timezone.now() - self.uploaded).days
+        else:
+            return True
+        if days >= self.get_category().days_to_expiration:
+            return False
+        return True
+
+
+class PlaylistHistory(AdminBrowsableObject):
+    started = models.DateTimeField(auto_now_add=True, auto_now=False)
+    finished = models.DateTimeField(auto_now_add=False, auto_now=False, null=True)
+    audio = models.ForeignKey(Audio, null=True, blank=True)
+
+    class Meta:
+        verbose_name = u'Playlist History'
+        verbose_name_plural = verbose_name
+
+    def stop(self):
+        self.finished = timezone.now()
+        self.save()
+
+    def __unicode__(self):
+        return unicode('Recorded <%s>' % self.audio.title)
+
+
+# Signals
+
+post_save.connect(calculate_duration, sender=Promotion)
+post_save.connect(calculate_duration, sender=Episode)
+
+# Delete linked files, such as audios or covers
+post_delete.connect(file_cleanup, sender=Episode)
+post_delete.connect(file_cleanup, sender=Promotion)
 
 
 from mpc.models import MPDC
-from podcastmanager.settings import CURRENT_PLAYLIST
-# TODO FINISH THIS
-class PlayListManager():
 
-    old_audio = '' # Formato [audio_03.mp3]
+
+# TODO FINISH THIS
+
+
+class PlayListManager(object):
+    old_audio = ''  # Formato [audio_03.mp3]
 
     def __init__(self):
         mpc = MPDC()
@@ -407,18 +337,18 @@ class PlayListManager():
     def status(self):
         return self.client.status()
 
-    def __load__(self, playlist=CURRENT_PLAYLIST):
+    def __load__(self, playlist='current'):
         print 'Cargando %s' % playlist
         self.client.load(playlist)
 
     def reset_playlist(self):
         print 'Reseteando playlist'
         self.client.clear()
-        self.__load__()
         self.client.update()
+        self.__load__()
 
     def add_song(self, file_name):
-        real_path = BASE_DIR + '/audios/' + file_name
+        real_path = os.path.join(AUDIOS_URL, file_name)
         if os.path.isfile(real_path):
             print 'File exists: ' + real_path
             try:
@@ -447,31 +377,16 @@ class PlayListManager():
         return self.client.currentsong()
 
     def get_current_song_time(self):
-        return self.client.status()['time'].split(':')[0]
+        if self.client.status().get('state') != 'stop':
+            return self.client.status().get('time').split(':')[0]
+        else:
+            return 0
 
     def get_playlist_info(self):
         return self.client.playlistinfo()
 
-    # Esta funcion se encarga se sumar +1 reproduccion al audio que empieza a sonar.
-    # TODO Implementar
-    #@task
-    def refresh_repro(self):
-        if self.client.status()['state'] == 'play':
-            current_audio = self.client.currentsong()['file']
-            if self.old_audio == '':
-                # Significa que no ha habido audio anterior
-                print 'No previous audio in PlayListManager'
-                self.old_audio = current_audio
-            elif current_audio != self.old_audio:
-                try:
-                    current_episode = Episode.objects.get(_filename=current_audio)
-                except:
-                    print 'This audio (%s) is currently sounding, ' \
-                          'but does not have any episode associated' % current_audio
-                    return
-                finally:
-                    current_episode.play()
-                    self.old_audio = current_audio
-            else:
-                # Sigue sonando el mismo
-                pass
+    def get_files_in_playlist(self, folder=None):
+        if folder is None or len(folder) < 1:
+            return list(audio_file.get('file') for audio_file in self.client.playlistinfo())
+        else:
+            return list((folder + audio_file.get('file')) for audio_file in self.client.playlistinfo())

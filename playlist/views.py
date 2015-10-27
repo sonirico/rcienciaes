@@ -1,34 +1,34 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from django.contrib.auth.decorators import login_required
-import opml
+
 import logging
+import os
+
+import opml
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError
-from django.contrib.auth.models import User, Group
 from django.http import HttpResponse, HttpResponseRedirect
-from playlist.models import *
-from podcastmanager.settings import TWITTER_OAUTH
-import sys
+from django.contrib.auth.models import Group, User
 
-reload(sys)
-sys.setdefaultencoding("utf-8")
-
+from playlist.models import Podcast
+from podcastmanager.settings import TWITTER_OAUTH, TWEET_TEMPLATE_PATH, COVERS_URL, DEFAULT_COVER_IMAGE, BASE_DIR
+from tools.normalize import normalize
 from twitter import *
-
-if not os.path.exists('logs'):
-    os.makedirs('logs')
 
 logger = logging.getLogger(__name__)
 
 
-# Crea un usuario por cada podcast en funcion del nombre de éste y los añade al grupo "podcasters"
-# Si exististieran previamente usuarios en este grupo, los borra
 def create_podcaster(podcast_nombre=''):
+    """
+        Crea un usuario por cada podcast en funcion del nombre de éste y los añade al grupo "podcasters"
+        Si exististieran previamente usuarios en este grupo, los borra
+        :param podcast_nombre:
+        :return:
+    """
     logger.info('Adding new podcaster ...')
     try:
         pod_group = Group.objects.get(name='podcasters')
         username = unicode(podcast_nombre)
-        redone_username = remove_accents(username)
+        redone_username = normalize(username)
         if len(redone_username) > 4:
             username = redone_username[:15]
         try:
@@ -43,48 +43,38 @@ def create_podcaster(podcast_nombre=''):
         logger.info('Unable to create new podcaster. Podcasters group does not exist.')
 
 
-import unicodedata
-import string
-
-
-# Procesa el nombre del podcast y lo convierte en nombre de usuario
-def remove_accents(data):
-    return ''.join(x for x in unicodedata.normalize('NFKD', data) if x in string.ascii_letters).lower()
-
-
-def import_from_opml(opml_file="podcasts.opml"):
+def import_from_opml(opml_file='podcasts.opml'):
     global logger
     if os.path.isfile(opml_file):
         outline = opml.parse(opml_file)
-        default_category = Categoria.objects.get(pk='2')
+        # default_category = Categoria.objects.get(pk='2')
         logger.info('Beginning podcast import operation.')
-        for podcast in outline:# Each "outline" tag represents one podcast
-            podcast_name = podcast.text # Podcast name
-            rss_url = podcast.xmlUrl    # Podcast rss
-            web_url = podcast.htmlUrl   # Podcast web
+        for podcast in outline:  # Each "outline" tag represents one podcast
+            podcast_name = podcast.text  # Podcast name
+            rss_url = podcast.xmlUrl  # Podcast rss
+            web_url = podcast.htmlUrl  # Podcast web
             logger.info('Importing %s ...' % podcast_name)
             # Si vamos a importar un nuevo fichero opml, puede que se repitan podcast. Considerando que este nuevo
             # opml será más reciente, actualizamos tanto la web como el nombre del podcast.
             # La premisa principal, es que un RSS nunca cambia de url, ya que es el campo de comparación. En otras palabras
             # se toma como clave primaria la url del rss feed (Algo que no me gusta).
-            old_podcasts = Podcast.objects.filter(rssfeed=rss_url)
+            old_podcasts = Podcast.objects.filter(feed=rss_url)
             if old_podcasts.count() == 1:
                 # Podcast existente. Actualizamos datos.
                 logger.info('Podcast already stored. Updating it ...')
                 old_podcast = old_podcasts[0]
-                old_podcast.nombre = podcast.text
-                old_podcast.web = podcast.htmlUrl
+                old_podcast.name = podcast.text
+                old_podcast.website = podcast.htmlUrl
                 old_podcast.save()
-            elif old_podcasts.count() > 1: # Mas de un podcast con el mismo feed. Nunca debería entrar aquí.
+            elif old_podcasts.count() > 1:  # Mas de un podcast con el mismo feed. Nunca debería entrar aquí.
                 logger.info('Too many podcast for one feed.')
             else:
                 # No hay podcasts coincidentes. Lo creamos.
                 logger.info('Creating new podcast ...')
                 new_podcast = Podcast(
-                    nombre=podcast_name,
-                    rssfeed=rss_url,
-                    web=web_url,
-                    categoria=default_category
+                    name=podcast_name,
+                    feed=rss_url,
+                    website=web_url
                 )
                 new_podcast.save()
             create_podcaster(podcast_name)
@@ -93,10 +83,11 @@ def import_from_opml(opml_file="podcasts.opml"):
         return HttpResponse('Done all imports.')
     else:
         return HttpResponse('Unable to find the submitted opml file: ' + opml_file)
+
 # End import_from_opml
 
-#Crea una lista de cero. Borra las canciones que hubiera antes.
-#En otras palabras, se reinicia la reproduccion
+# Crea una lista de cero. Borra las canciones que hubiera antes.
+# En otras palabras, se reinicia la reproduccion
 from playlist.models import PlayListManager
 
 
@@ -107,18 +98,18 @@ def reset_playlist(request=None):
     plm = PlayListManager()
     plm.reset_playlist()
     # Seleccionamos los podcasts activos con un audio activo
-    all_active_podcasts = Podcast.objects\
-        .filter(activo=True)\
-        .exclude(active_episode=0)\
+    all_active_podcasts = Podcast.objects \
+        .filter(activo=True) \
+        .exclude(active_episode=0) \
         .order_by('nombre')
     if not all_active_podcasts.exists():
-        logger.info('No active podcasts. Aborted')
+        logger.info('No active podcasts. Aborting')
         return HttpResponseRedirect('/admin/player/')
     for podcast in all_active_podcasts:
         # ¿Que pasa si el podcast no tiene ningun audio anterior? En teoria no debería suceder porque
         # el .exclude() criba los que no tengan audio. En este punto debería tener al menos 1.
         try:
-            episode = podcast.active_episode #Episode.objects.get(pk=podcast.active_episode.id)
+            episode = podcast.active_episode  # Episode.objects.get(pk=podcast.active_episode.id)
             if episode is not None:
                 # ¿El episodio ha llegado al limite de reproducciones ?
                 if episode.times_played < podcast.get_max_repro():
@@ -132,130 +123,138 @@ def reset_playlist(request=None):
     plm.play()
     plm.close()
     return HttpResponseRedirect('/admin/player/')
+
 # End reset_playlist
 
 
-# refrescamos la lista sustituyendo el audio viejo por el nuevo de un episodio
-# Normalmente esta operacion se suele realizar tras haber descargado un episodio
-# sirve para intercambiar un episodio viejo por uno nuevo de un podcast. Esto solo
-# se puede llevar a cabo, si el audio que suena no pertenece al mismo podcast del recien descargado.
-def update_playlist(request=None):
-    global logger
-    logger.info('Updating playlist.')
-    plm = PlayListManager()
-    # Si de entrada, no hay nada en la lista ...
-    if len(plm.get_playlist_info()) < 1:
-        reset_playlist()
-        return
-    elif plm.status()['state'] != 'play':
-        plm.play()
-    # Seleccionamos los podcasts activos con un audio activo
-    all_active_podcasts = Podcast.objects\
-        .filter(activo=True)\
-        .exclude(active_episode=0)\
-        .order_by('nombre')
-    if not all_active_podcasts.exists():
-        logger.info('No active podcasts. Update aborted. ')
-        return HttpResponseRedirect('/admin/player/')
-    current_song = plm.get_current_song() # El audio que estaba sonando antes
-    current_time = plm.get_current_song_time() # El segundo donde current_song estaba
-    old_episode = Episode.objects.filter(_filename=current_song['file'])[0]
-    # Resetamos la playlist
-    plm.reset_playlist()
-    for podcast in all_active_podcasts:
-        try:
-            episode = podcast.active_episode
-            if episode is not None:
-                if episode.times_played < podcast.get_max_repro():
-                    # Entonces lo incluimos en la lista
-                    plm.add_song(episode.get_file_name())
-                    logger.info('Added to playlist: %s' % episode.get_file_name())
-        except:
-            pass
-    # Seleccionamos la nueva posicion en la playlist
-    new_playlist = plm.get_playlist_info()
-    # Solo seleccionamos la cancion que sonaba cuando la playlist anterior no estaba vacia
-    # ¿Que pasaria si el audio ya no está? Vuelve desde 0
-    audio_found = False
-    for audio in new_playlist:
-        if audio['file'] == current_song['file']:
-            plm.move(audio['id'])
-            plm.seek(audio['id'], current_time)
-            audio_found = True
-            break
-    if not audio_found:
-        logger.info('Previous sounding audio not found. Seeking the appropriate newer')
-        #  Debemos recorrer la vieja playlist y encontrar el audio que se estaba reproduciendo. Despues, se cogera
-        #  la sigguiente, siempre y cuando vaya a ser reproducida
-        search_next = False
-        found = False
-        for podcast in all_active_podcasts:
-            try:
-                episode = podcast.active_episode
-                if episode is None:
-                    continue
-            except:
-                continue
-            if podcast == old_episode.podcast and not search_next:
-                search_next = True
-                logger.info('Episode from old episode podcast found, searching the next')
-                continue
-            if search_next:
-                for audio in new_playlist:
-                    if audio['file'] == episode.get_file_name():
-                        logger.info('Move cursor to %s ' % audio['file'])
-                        plm.move(audio['id'])
-                        found = True
-                        break
-            if found:
+def update_playlist(request):
+    pm = PlayListManager()
+    last_sounding_song = pm.get_current_song()  # El audio que estaba sonando antes
+    last_time = pm.get_current_song_time()  # El segundo donde current_song estaba
+    # Remove previous playlist
+    pm.reset_playlist()
+    # Get episodes and promos
+    all_active_podcasts = Podcast.objects.filter(active=True).exclude(active_episode=None).order_by('name')
+    episodes = [podcast.active_episode for podcast in all_active_podcasts if podcast.active_episode.is_active()]
+    promos = get_promo_list_by_time_interval()
+    counters = {}  # Set counters for every kind of promo
+    added = {}  # Stores boolean values which represent if an audio has been added to playlist.
+    for interval in promos:
+        counters[interval] = 0
+        added[interval] = False
+    duration = 0
+    if len(episodes) > 0:  # The code will normally enter here
+        for episode in episodes:
+            # Add episode
+            pm.add_song(episode.get_filename())
+            if episode.duration is not None:
+                duration += episode.duration
+            # Add promotions
+            for interval in promos:
+                promo_list = promos[interval]
+                if counters[interval] < len(promo_list):
+                    promo = promo_list[counters[interval]]
+                    if duration >= interval:
+                        pm.add_song(promo.get_filename())
+                        counters[interval] += 1  # Move to the next promo
+                        added[interval] = True
+            if all_set(added):
+                for interval in added:
+                    added[interval] = False  # Reset to false and restart again
+                duration = 0
+    else:  # No episodes in playlist. Should we add promos alone?
+        for interval in promos:
+            promo_list = promos[interval]
+            for promo in promo_list:
+                pm.add_song(promo.get_filename())
+    # Seek the current audio position if possible
+    new_playlist = pm.get_playlist_info()
+    if last_sounding_song is not None:
+        for audio in new_playlist:
+            if audio.get('file') == last_sounding_song.get('file'):
+                pm.move(audio.get('id'))
+                pm.seek(audio.get('id'), last_time)
                 break
-        if not found:
-            logger.info('No parallel audio has been found. ')
-    plm.play()
-    plm.close()
-    logger.info('PLaylist updated successfully ')
-    return HttpResponseRedirect('/admin/player/')
+        else:
+            logger.info("The audio which was sounding is not here anymore.")
+    pm.play()
+    pm.close()
+    logger.info('Playlist updated successfully ')
+    return HttpResponseRedirect('/player/')
 
+"""
+from playlist.models import Audio
 
-def tweet_new_audio(request):
-    bird = Twitter(auth=OAuth(
+def index(request):
+    a = Audio.objects.all()[7]
+#    return HttpResponse(render_to_string(TWEET_TEMPLATE_PATH, {'audio':a}))
+    return HttpResponse(str(tweet(a)))
+"""
+
+from django.template import Template, Context
+
+def tweet(audio):
+    if audio is None:
+        return False
+    try:
+        bird = Twitter(auth=OAuth(
             TWITTER_OAUTH['ACCESS_TOKEN'],
             TWITTER_OAUTH['ACCESS_TOKEN_SECRET'],
             TWITTER_OAUTH['CONSUMER_KEY'],
             TWITTER_OAUTH['CONSUMER_KEY_SECRET']
-        )
-    )
-    # Si había una entrada en el historial de reproducciones, marcamos su fin.
-    history = PlayHistory.objects.all().order_by('-ini')
-    if history.count() > 0:
-        ph = history[0]
-        ph.stop()
-    c = MPDC()
-    c.connect()
-    # Seleccionamos el episodio que está sonando
-    current_file = c.client.currentsong().get('file')
-    c.client.close()
-    episode = Episode.objects.get(_filename=current_file)
-    episode.play()
-    tweet = '#RadioPodcastellano #' + str(episode.times_played) + ': En el aire: "' + str(episode.titulo) + \
-            '" de "' + str(episode.podcast.nombre) + '"'
-    c.client.close()
-    #bird.statuses.update(status=tweet[:140])
-    logger.info('Tweet sent: "%s"' % tweet)
-    return HttpResponse('Tweet sent : ' + tweet)
-
-
-def tweet(text):
-    try:
-        bird = Twitter(auth=OAuth(
-                TWITTER_OAUTH['ACCESS_TOKEN'],
-                TWITTER_OAUTH['ACCESS_TOKEN_SECRET'],
-                TWITTER_OAUTH['CONSUMER_KEY'],
-                TWITTER_OAUTH['CONSUMER_KEY_SECRET']
-            )
-        )
-        bird.statuses.update(status=text[:140])
+        ))
+        if not os.path.isfile(TWEET_TEMPLATE_PATH):
+            return False
+        with open(TWEET_TEMPLATE_PATH) as template_file:
+            template_content = template_file.read()
+            template_file.close()
+        template = Template(template_content)
+        new_status = template.render(Context({'audio': audio}))[:140]
+        try:
+            if audio.get_cover() == DEFAULT_COVER_IMAGE:
+                raise ValueError('Cover image is the default one.')
+            with open(os.path.join(BASE_DIR, COVERS_URL, audio.get_cover()), 'rb') as cover_file:
+                image_data = cover_file.read()
+                # Upload cover image
+                t_up = Twitter(domain='upload.twitter.com', auth=OAuth(
+                    TWITTER_OAUTH['ACCESS_TOKEN'],
+                    TWITTER_OAUTH['ACCESS_TOKEN_SECRET'],
+                    TWITTER_OAUTH['CONSUMER_KEY'],
+                    TWITTER_OAUTH['CONSUMER_KEY_SECRET']
+                ))
+                id_img = t_up.media.upload(media=image_data)['media_id_string']
+                bird.statuses.update(status=new_status, media_ids=','.join([id_img, ]))
+                logger.info('Tweet sent with media: %s' % new_status)
+                cover_file.close()
+        except Exception, e:
+            logger.exception(e.message)
+            bird.statuses.update(status=new_status)
+            logger.info('Tweet sent without media: %s' % new_status)
         return True
     except Exception, e:
-        print e
+        logger.info('Failed to send tweet: "%s"' % tweet)
+        logger.exception(e.message)
         return False
+
+
+from playlist.models import Promotion, PromoCategory
+
+
+def get_promo_list_by_time_interval():
+    """
+    :return: Promotions grouped by their category. Key => time_interval, Value => Promotion list
+    """
+    promos = {}
+    for category in PromoCategory.objects.values('id', 'time_interval').order_by(
+            'time_interval'):  # group by time_interval
+        promos[category['time_interval']] = Promotion.objects \
+            .filter(category__id=category['id']) \
+            .order_by('title')
+    return promos
+
+
+def all_set(added):
+    for interval in added:
+        if not added[interval]:
+            return False
+    return True

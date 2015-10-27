@@ -2,21 +2,28 @@
 # -*- coding: utf-8 -*-
 
 from abc import ABCMeta, abstractmethod
-from datetime import datetime,timedelta
-
-from django.utils import timezone
 from django.db import models
-from django.conf.urls import patterns
 from mpc.models import MPDC
+from playlist.models import PlaylistHistory as PlayHistory, PlayListManager
+from django.core.exceptions import ObjectDoesNotExist
+from podcastmanager.settings import AUDIOS_URL
+import logging
 
-from playlist.models import Sound, PlayHistory, Episode, TaskScheduler
+logger = logging.getLogger(__name__)
 
 
 class Player():
     buttons = []
 
     def __init__(self):
-        self.buttons.extend([Play(), Stop(), Pause(), Next(), Previous()])
+        self.buttons.extend([
+            Play(),
+            Stop(),
+            Pause(),
+            Next(),
+            Previous(),
+            #Refresh()
+        ])
 
     def get_status(self):
         c = MPDC()
@@ -24,6 +31,7 @@ class Player():
         output = c.client.status()
         c.client.close()
         return output
+
 
     def get_playlist_info(self):
         c = MPDC()
@@ -39,68 +47,119 @@ class Player():
         return song_info_list
 
 
-class Button:
+class Button():
     __metaclass__ = ABCMeta
+
+    def __init__(self):
+        pass
 
     @abstractmethod
     def action(self):
         pass
 
-# TODO: Revisar algoritmia en esta funcion. Problemática en un futuro.
+
+class LastRegisteredAudioNotInPlaylist(Exception):
+    def __init__(self):
+        logger.exception(
+            u'The last registered audio is not in the current playlist. Playlist must have been refreshed manually'
+        )
+
+
+class ShouldHaveBeenPlaylistHistoryException(Exception):
+    def __init__(self):
+        logger.exception(u'There have been audios on the air which might have been not registered in history.')
+
+
 class Play(Button):
-    action_name = "play"
+    def __init__(self):
+        self.action_name = "play"
 
     def action(self, client):
-        if client.status().get('state', None) == 'pause':
+        state = client.status().get('state', None)
+        if state == 'pause':
             client.play()
-        else:
-            if client.status().get('state', None) == 'stop':
-                current_file = client.currentsong().get('file')
-                # Implica que la reproduccion ha sido detenida con ~# mpc stop y que desde el reproductor
-                # mediante la accion play, no se emprenderá la acción play debido a que no hay un archivo
-                # sonando o cargado (campo songid).
-            client.play()
+        elif state == 'stop':
+            '''
+                Al parar la playlist, la reproducción regresa a la posición 0. Cogiendo la última entrada del
+                historial se replayea el último que sonaba
+            '''
+            try:
+                latest_audio = PlayHistory.objects.latest('started')
+                pm = PlayListManager()
+                pos = 0
+                found = False
+                for file_name in pm.get_files_in_playlist():
+                    if file_name == latest_audio.audio.get_filename():
+                        client.play(pos)
+                        found = True
+                        break
+                    pos += 1
+                if not found:
+                    raise LastRegisteredAudioNotInPlaylist
+            except ObjectDoesNotExist:
+                raise ShouldHaveBeenPlaylistHistoryException
 
 
 class Pause(Button):
-    action_name = 'pause'
+    def __init__(self):
+        self.action_name = 'pause'
 
-    def action (self, client):
+    def action(self, client):
+        if client.status().get('state', None) == 'play':
+            client.pause()
+        '''
         if client.status().get('state', None) == 'play':
             client.pause()
         else:
             if client.status().get('state', None) == 'pause':
                 currentfile = client.currentsong().get('file')
             client.play()
+        '''
+
+'''
+from playlist.views import update_playlist
 
 
-class Stop (Button):
-    action_name = "stop"
+class Refresh(Button):
+    def __init__(self):
+        self.action_name = 'refresh'
 
-    def action (self,client):
-        if client.status().get('state',None) != 'stop':
+    def action(self):
+        update_playlist(None)
+'''
+
+class Stop(Button):
+    def __init__(self):
+        self.action_name = "stop"
+
+    def action(self,client):
+        if client.status().get('state', None) != 'stop':
+            '''
             #TODO prueba de cordura con currentsong
-            if len(PlayHistory.objects.all().order_by('-ini'))>=1:
-                ph=PlayHistory.objects.all().order_by('-ini')[0]
+            if len(PlayHistory.objects.all().order_by('-ini')) >= 1:
+                ph = PlayHistory.objects.all().order_by('-ini')[0]
                 ph.stop()
             #eliminamos las tasks stop_sound_task
             #q=TaskScheduler.objects.filter(periodic_task__task="player.tasks.stop_sound_task")
             #for t in q:
                 #t.terminate()
+            '''
             client.stop()
 
 
-class Next (Button):
-    action_name = "next"
+class Next(Button):
+    def __init__(self):
+        self.action_name = "next"
 
     def action(self,client):
         client.next()
 
 
 class Previous(Button):
-    action_name = "previous"
+    def __init__(self):
+        self.action_name = "previous"
 
-    def action (self,client):
+    def action(self,client):
         client.previous()
 
 
@@ -108,9 +167,9 @@ class PlayerWrapper(models.Model):
     def __unicode__(self):
         return self.title
 
-    class Meta(object):
-        def __init__(self):
-            verbose_name = "Reproductor"
+    class Meta():
+        verbose_name = u'Reproductor'
+        abstract = True
 
 
 

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+{% load i18n grp_tags %}
+<html lang="{{ LANGUAGE_CODE|default:'en-us' }}">
+<head>
+    <title>
+        {% block title %}{{ title }} | {% get_site_title %}{% endblock %}
+    </title>
+
+    {% block metas %}
+        <meta charset="utf-8" />
+        <meta name="robots" content="NONE,NOARCHIVE" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+    {% endblock %}
+    {% load staticfiles %}
+    <!-- STYLESHEETS -->
+    {% block stylesheets %}
+        <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" >
+        <link href="{% static 'css/custom_base.css' %}" rel="stylesheet" />
+    {% endblock %}
+
+    <!-- EXTRASTYLES -->
+    {% block extrastyle %}
+    {% endblock %}
+
+    <!-- JAVASCRIPTS -->
+    {% block javascripts %}
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+        <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+    {% endblock %}
+
+    <!-- EXTRAHEAD -->
+    {% block extrahead %}
+    {% endblock %}
+</head>
+<body>
+    {% block header %}
+        <!-- HEADER -->
+        <header>
+            <nav class="navbar navbar-inverse" >
+                <div class="container-fluid">
+                    <div class="navbar-header">
+                        <button type="button" class="navbar-toggle collapsed"
+                                data-toggle="collapse"
+                                data-target="#navbar"
+                                aria-expanded="false" aria-controls="navbar" >
+                            <span class="sr-only">Toggle navigation</span>
+                            <span class="icon-bar"></span>
+                            <span class="icon-bar"></span>
+                            <span class="icon-bar"></span>
+                        </button>
+                        <a class="navbar-brand" href="{% get_admin_url %}">{% get_site_title %}</a>
+                    </div>
+                    <div id="navbar" class="navbar-collapse collapse">
+                        <ul class="nav navbar-nav" >
+                            <li><a href="{% get_admin_url %}" >{% trans 'Home' %}</a></li>
+                        </ul>
+                        {% if user.is_authenticated and user.is_staff %}
+                        <ul class="nav navbar-nav navbar-right">
+                            <!-- Userlinks -->
+                            {% block userlinks %}
+                            <li class="dropdown">
+                                <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button"
+                                   aria-haspopup="true" aria-expanded="false">
+                                    {% firstof user.get_short_name user.get_username %}
+                                    <span class="caret"></span>
+                                </a>
+                                <ul class="dropdown-menu">
+                                    <!-- Change Password -->
+                                    {% if user.has_usable_password %}
+                                        <li>
+                                            <a href="{% url 'admin:password_change' %}" class="grp-change-password">
+                                                {% trans 'Change password' %}
+                                            </a>
+                                        </li>
+                                    {% endif %}
+                                     <!-- Logout -->
+                                    <li>
+                                        <a href="{% url 'admin:logout' %}" class="grp-logout">
+                                            {% trans 'Log out' %}
+                                        </a>
+                                    </li>
+                                    <!-- Switch -->
+                                    {% switch_user_dropdown %}
+                                </ul>
+                            </li>
+                            {% endblock %}
+                        </ul>
+                        {% endif %}
+                    </div>
+                </div>
+            </nav>
+        </header>
+    {% endblock %}
+
+    <!-- MAIN CONTENT -->
+    <div class="container-fluid">
+    {% block content %}
+
+    {% endblock %}
+    </div>
+
+    <!-- FOOTER -->
+    {% block footer %}
+        <footer>
+
+        </footer>
+    {% endblock %}
+
+
+</body>
+</html>

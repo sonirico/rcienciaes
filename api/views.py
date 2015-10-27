@@ -1,14 +1,19 @@
 # -*- coding: utf-8 -*-
+import os
+import json
+import logging
 
 from django.shortcuts import Http404
 from django.http import HttpResponse
+from django.core.exceptions import ObjectDoesNotExist
 from mpc.models import MPDC
-from playlist.models import Episode, Podcast, LiveEntry
+from playlist.models import Episode, Podcast
+from live.models import LiveEntry
 from player.views import podcaster_in_the_air
-
-import json
+from podcastmanager.settings import AUDIOS_URL, DEFAULT_COVER_IMAGE
 
 # Create your views here.
+logger = logging.getLogger(__name__)
 
 def index(request):
     return HttpResponse('ok')
@@ -27,18 +32,21 @@ def live(request):
         data['live'] = 'off'
     return HttpResponse(json.dumps(data))
 
+
 def current(request):
     mpdc = MPDC()
     mpdc.connect()
-    response = 'Nothing sounding'
-    current_status = mpdc.client.status()
-    if current_status['state'] == 'play':
-        current_song = mpdc.client.currentsong()
-        cover_url = get_cover_from_file(current_song['file'])
-        current_song['cover'] = cover_url
-        response = json.dumps(current_song)
+    current_song = mpdc.client.currentsong()
     mpdc.client.close()
-    return HttpResponse(response)
+    if current_song:
+        audio = get_audio_from_file(current_song.get('file'))
+        if not audio:
+            raise Http404
+        current_song['cover'] = audio.get_cover()
+        response = json.dumps(current_song)
+        return HttpResponse(response, content_type='application/json')
+    else:
+        raise Http404
 
 
 def status(request):
@@ -46,25 +54,26 @@ def status(request):
     mpdc.connect()
     response = json.dumps(mpdc.client.status())
     mpdc.client.close()
-    return HttpResponse(response)
+    return HttpResponse(response, content_type='application/json')
 
 
 def playlistinfo(request):
     mpdc = MPDC()
     mpdc.connect()
     current_status = mpdc.client.status()
-    if current_status['state'] == 'play':
-        playlist = mpdc.client.playlistinfo()
+    mpd_playlist = mpdc.client.playlistinfo()
+    mpdc.client.close()
+    if mpd_playlist:  # Empty == False
         new_list = []
-        for entry in playlist:
+        for entry in mpd_playlist:
             # Obtenemos el link de la cover
-            cover_url = get_cover_from_file(entry['file'])
+            audio = get_audio_from_file(entry['file'])
+            cover_url = audio.get_cover()
             entry['cover'] = str(cover_url)
             new_list.append(entry)
-        mpdc.client.close()
         return HttpResponse(json.dumps(new_list))
-    mpdc.client.close()
-    return HttpResponse('Nothing sounding')
+    else:
+        raise Http404
 
 
 def get_song_by_id(request, song_id):
@@ -78,7 +87,10 @@ def get_song_by_id(request, song_id):
             song = entry
             break
     if found:
-        song['cover'] = get_cover_from_file(song['file'])
+        audio = get_audio_from_file(song['file'])
+        if not audio:
+            raise Http404
+        song['cover'] = audio.get_cover()
         response = json.dumps(song)
     else:
         response = 'Audio whose id = %s does not exist ' % song_id
@@ -97,7 +109,10 @@ def get_song_by_pos(request, song_pos):
             song = entry
             break
     if found:
-        song['cover'] = get_cover_from_file(song['file'])
+        audio = get_audio_from_file(song['file'])
+        if not audio:
+            raise Http404
+        song['cover'] = audio.get_cover()
         response = json.dumps(song)
     else:
         response = 'Audio whose id = %s does not exist ' % song_pos
@@ -105,33 +120,54 @@ def get_song_by_pos(request, song_pos):
     return HttpResponse(response)
 
 
-def get_cover_from_file(filename=None):
-    if filename is None: return
-    episodes = Episode.objects.filter(_filename=filename)
-    if episodes.exists():
-        episode = episodes[0]
-        cover = episode.get_image_filename()
-        return cover
+def get_audio_from_file(filename=None):
+    if filename is not None:
+        try:
+            audio = Audio.objects.get(filename=os.path.join(AUDIOS_URL, filename))
+            return audio
+        except ObjectDoesNotExist, e:
+            logger.exception(e.message)
+            return False
+    return False
+
+
+from statistics.models import IceCastRetriever
+
+
+def stats(request):
+    try:
+        retriever = IceCastRetriever()
+        stats = retriever.raw_stats()
+        del retriever
+        return HttpResponse(json.dumps(stats), content_type='application/json')
+    except Exception, e:
+        raise Http404
 
 # Sobre el podcast del episodio que está sonando, devuelve:
 # Nombre del podcast, nombre del episodio , imagen del episodio, ...
+
+
 def podcast(request):
     try:
         mpdc = MPDC()
         mpdc.connect()
         current_file = mpdc.client.currentsong().get('file')
-        current_episode = Episode.objects.filter(_filename=current_file)[0]
-        current_podcast = current_episode.podcast
+        audio = get_audio_from_file(current_file)
+        if not audio:
+            raise Http404
+        #current_podcast = current_episode.podcast
         data = {}
-        data['podcast_name'] = current_podcast.nombre
-        data['podcast_description'] = current_podcast.descripcion
-        data['podcast_web'] = current_podcast.web
-        data['podcast_image'] = current_episode.get_image_filename()
-        data['episode_title'] = current_episode.titulo
-        return HttpResponse(json.dumps(data))
-        #return HttpResponse(serializers.serialize('json', current_episode), mimetype='application/json')
+        data_type = audio.get_type()
+        data['type'] = data_type
+        if data_type == 'episode':
+            data['podcast_name'] = audio.podcast.name
+            data['podcast_description'] = audio.podcast.description
+            data['podcast_web'] = audio.podcast.website
+        data['audio_cover'] = audio.get_cover()
+        data['audio_title'] = audio.title
+        return HttpResponse(json.dumps(data), content_type='application/json')
     except:
-        return Http404()
+        raise Http404
 
 
 # Información sobre el siguiente podcast que sonara
@@ -152,25 +188,39 @@ def next_podcast(request):
     except:
         return Http404()
 
+from django.contrib.contenttypes.models import ContentType
+from playlist.models import PlayListManager
 
 def playlist(request):
-    try:
-        mpdc = MPDC()
-        mpdc.connect()
-        data = {}
-        i = 0
-        for entry in mpdc.client.playlistinfo():
-            episode = Episode.objects.get(_filename=entry.get('file'))
-            podcast = episode.podcast
-            data_pod = {}
-            data_pod['podcast_name'] = podcast.nombre
-            data_pod['podcast_image'] = episode.get_image_filename()
-            data_pod['episode_title'] = episode.titulo
-            data[i] = data_pod
-            i += 1
-        return HttpResponse(json.dumps(data))
-    except:
-        return Http404()
+    pm = PlayListManager()
+    data = {}
+    rows = []
+    files = pm.get_files_in_playlist(folder=AUDIOS_URL)
+    audios = Audio.objects.filter(filename__in=files)
+    pos = 0
+    for audio in audios:
+        # Episode or audio
+        data_pod = {}
+        audio_type = audio.get_type()
+        if audio_type == 'episode':
+            data_pod['podcast_name'] = audio.podcast.name
+        elif audio_type == 'promotion':
+            data_pod['expiration'] = str(audio.expiration)
+            data_pod['uploaded'] = str(audio.uploaded)
+            data_pod['tweet'] = audio.tweet
+        # Common attributes
+        data_pod['pos'] = pos
+        #data_pod['podcast_image'] = episode.get_image_filename()
+        data_pod['audio_title'] = audio.title
+        data_pod['audio_type'] = audio_type
+        rows.append(data_pod)
+        pos += 1
+    data['rows'] = rows
+    data['total'] = audios.count()
+    data['current'] = 1
+    data['rowCount'] = 4
+    return HttpResponse(json.dumps(data), content_type='application/json')
+
 # Playlist del día: información para visualizar la playlist del podcast del día (nombre, episodio, imagen)
 
 
@@ -184,7 +234,7 @@ def podcast_by_id(request, podcast_id):
         data['web'] = pod.web
         data['categoria'] = pod.categoria.nombre
         data['active'] = pod.activo
-        data['image'] = 'default.png'
+        data['image'] = DEFAULT_COVER_IMAGE
         try:
             data['active_episode_id'] = pod.active_episode.id
             data['image'] = pod.active_episode.get_image_filename()
@@ -215,3 +265,19 @@ def episode_by_id(e):
     data['date_published'] = str(e._date_published)
     data['date_downloaded'] = str(e._date_downloaded)
     return data
+
+
+
+from django.views.generic import ListView
+from playlist.models import Audio
+from django.http import JsonResponse
+
+
+class AudioListView(ListView):
+    title = 'Audio List'
+    queryset = Audio.objects.order_by('-title')
+
+    def get_context_data(self, **kwargs):
+        context = super(AudioListView, self).get_context_data(**kwargs)
+        context['title'] = self.title
+        return context

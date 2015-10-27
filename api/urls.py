@@ -1,15 +1,18 @@
-from django.conf.urls import patterns
+from django.conf.urls import url
 from api import views
+from api.views import AudioListView
 
-urlpatterns = patterns('',
-    (r'current/$', views.current),
-    (r'live/$', views.live),
-    (r'status/$', views.status),
-    (r'playlistinfo/$', views.playlistinfo),
-    (r'song_by_pos/(?P<song_pos>\d+)$', views.get_song_by_pos),
-    (r'song_by_id/(?P<song_id>\d+)$', views.get_song_by_id),
-    (r'podcast/$', views.podcast),
-    (r'next/$', views.next_podcast),
-    (r'playlist/$', views.playlist),
-    (r'podcastbyid/(?P<podcast_id>\d+)/$', views.podcast_by_id),
-)
+urlpatterns = [
+    url(r'current/$', views.current),
+    url(r'live/$', views.live),
+    url(r'stats/$', views.stats),
+    url(r'status/$', views.status),
+    url(r'playlistinfo/$', views.playlistinfo),
+    url(r'song_by_pos/(?P<song_pos>\d+)$', views.get_song_by_pos),
+    url(r'song_by_id/(?P<song_id>\d+)$', views.get_song_by_id),
+    url(r'podcast/$', views.podcast),
+    url(r'next/$', views.next_podcast),
+    url(r'playlist/$', views.playlist),
+    url(r'podcastbyid/(?P<podcast_id>\d+)/$', views.podcast_by_id),
+    url(r'audios/', AudioListView.as_view())
+]

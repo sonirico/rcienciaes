@@ -91,7 +91,7 @@ static/
 *.sqlite3
 *.db
 
-# When usgin vi(m)
+# When using vi(m)
 
 *.swp
 

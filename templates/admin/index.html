@@ -1,102 +1,104 @@
 {% extends "admin/base_site.html" %}
-{% load i18n admin_static %}
 
-{% block extrastyle %}
-{{ block.super }}
-<link rel="stylesheet" type="text/css" href="{% static 'admin/css/dashboard.css'  %}" />
+<!-- LOADING -->
+{% load i18n grp_tags log %}
+
+<!-- JAVASCRIPTS -->
+{% block javascripts %}
+    {{ block.super }}
 {% endblock %}
 
-{% block coltype %}colMS{% endblock %}
-{% block branding %}
-<!--<h1 id="site-name">{% trans 'Panel de control de Podmanager' %}</h1>-->
-{% endblock %}
+<!-- COLTYPE/BODYCLASS-- >
 {% block bodyclass %}dashboard{% endblock %}
+{% block content-class %}content-grid{% endblock %}
 
-<!-- comentar para que aparezca arbol de navegacion -->
-{% block breadcrumbs %}{% endblock %}
+<!-- BREADCRUMBS -->
+{% block breadcrumbs %}
+    <ul class="grp-horizontal-list">
+        <li>{% trans "Home" %}</li>
+    </ul>
+{% endblock %}
+{% block content_title %}
+    {% if title %}
+        <header><h1>{% trans title %}</h1></header>
+    {% endif %}
+{% endblock %}
 
+<!-- CONTENT -->
 {% block content %}
-<div id="content-main">
-    <div class="app-player module">
-        <table>
-            <caption>
-                <a title="Player app" class="section" href="/admin/player/">
-                    Reproductor
-                </a>
-            </caption>
-            <tr class="model-player">
-                <th scope="row"><a href="/admin/player">Ir al reproductor de sonido</a></th>
-                <td>&nbsp;</td>
-            </tr>
-        </table>
-    </div>
-{% if app_list %}
-    {% for app in app_list %}
-        <div class="app-{{ app.app_label }} module">
-        <table>
-        <caption>
-            <a href="{{ app.app_url }}" class="section" title="{% blocktrans with name=app.name %}Models in the {{ name }} application{% endblocktrans %}">
-                {% blocktrans with name=app.name %}{{ name }}{% endblocktrans %}
-            </a>
-        </caption>
-        {% for model in app.models %}
-            <tr class="model-{{ model.object_name|lower }}">
-            {% if model.admin_url %}
-                <th scope="row"><a href="{{ model.admin_url }}">{{ model.name }}</a></th>
-            {% else %}
-                <th scope="row">{{ model.name }}</th>
-            {% endif %}
-
-            {% if model.add_url %}
-                <td><a href="{{ model.add_url }}" class="addlink">{% trans 'Añadir' %}</a></td>
-            {% else %}
-                <td>&nbsp;</td>
-            {% endif %}
-
-            {% if model.admin_url %}
-                <td><a href="{{ model.admin_url }}" class="changelink">{% trans 'Editar' %}</a></td>
-            {% else %}
-                <td>&nbsp;</td>
-            {% endif %}
-            </tr>
-        {% endfor %}
-        </table>
-        </div>
-    {% endfor %}
-{% else %}
-    <p>{% trans "No tienes permisos para editar" %}</p>
-{% endif %}
-</div>
-{% endblock %}
-
-{% block sidebar %}
-<div id="content-related">
-    <div class="module" id="recent-actions-module">
-        <h2>{% trans 'Historial de acciones' %}</h2>
-        <h3>{% trans 'Mis acciones' %}</h3>
-            {% load log %}
-            {% get_admin_log 10 as admin_log for_user user %}
-            {% if not admin_log %}
-            <p>{% trans 'No existe ninguno' %}</p>
-            {% else %}
-            <ul class="actionlist">
-            {% for entry in admin_log %}
-            <li class="{% if entry.is_addition %}addlink{% endif %}{% if entry.is_change %}changelink{% endif %}{% if entry.is_deletion %}deletelink{% endif %}">
-                {% if entry.is_deletion or not entry.get_admin_url %}
-                    {{ entry.object_repr }}
-                {% else %}
-                    <a href="{{ entry.get_admin_url }}">{{ entry.object_repr }}</a>
-                {% endif %}
-                <br/>
-                {% if entry.content_type %}
-                    <span class="mini quiet">{% filter capfirst %}{% trans entry.content_type.name %}{% endfilter %}</span>
-                {% else %}
-                    <span class="mini quiet">{% trans 'Contenido desconocido' %}</span>
-                {% endif %}
-            </li>
+    <div class="g-d-c">
+        <div class="g-d-12 g-d-f">
+            <div class="grp-module" id="app_player">
+                <h2><a href="/player" class="grp-section">{% trans "Player" %}</a></h2>
+            </div>
+            {% for app in app_list %}
+                <div class="grp-module" id="app_{{ app.name|lower }}">
+                    <h2><a href="{{ app.app_url }}" class="grp-section">{% trans app.name %}</a></h2>
+                    {% for model in app.models %}
+                        <div class="grp-row" id="model-{{ model.object_name|lower }}">
+                            {% if model.admin_url %}
+                                <a href="{{ model.admin_url }}"><strong>{{ model.name }}</strong></a>
+                            {% else %}
+                                <strong>{{ model.name }}</strong>
+                            {% endif %}
+                            {% if model.add_url or model.admin_url %}
+                                <ul class="grp-actions">
+                                    {% if model.add_url %}
+                                        <li class="grp-add-link">
+                                            <a href="{{ model.add_url }}">{% trans "Add" %}</a>
+                                        </li>
+                                    {% endif %}
+                                    {% if model.admin_url %}
+                                        <li class="grp-change-link">
+                                            <a href="{{ model.admin_url }}">{% trans "Change" %}</a>
+                                        </li>
+                                    {% endif %}
+                                </ul>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% empty %}
+                <p>{% trans "You don´t have permission to edit anything." %}</p>
             {% endfor %}
-            </ul>
-            {% endif %}
+            {% block custom_views %}
+                {% if custom_list %}
+                    <div class="grp-module" id="custom_views">
+                        <h2>{% trans 'Custom Views' %}</h2>
+                        <div class="grp-row">
+                            {% for path, name in custom_list %}
+                                <a href="{{ path }}"><strong>{{ name }}</strong></a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endif %}
+            {% endblock %}
+        </div>
+        <div class="g-d-6 g-d-l">
+            <div class="grp-module" id="grp-recent-actions-module">
+                <h2>{% trans 'Recent Actions' %}</h2>
+                <div class="grp-module">
+                    <h3>{% trans 'My Actions' %}</h3>
+                    {% get_admin_log 10 as admin_log for_user user %}
+                    {% if not admin_log %}
+                        <div class="grp-row"><p>{% trans 'None available' %}</p></div>
+                    {% else %}
+                        <ul class="grp-listing-small">
+                            {% for entry in admin_log %}
+                                <li class="grp-row{% if entry.is_addition %} grp-add-link{% endif %}{% if entry.is_change %} grp-change-link{% endif %}{% if entry.is_deletion %} grp-delete-link{% endif %}">
+                                    {% if entry.is_deletion %}
+                                        <span>{{ entry.object_repr }}</span>
+                                    {% else %}
+                                        <a href="{{ entry.get_admin_url }}">{{ entry.object_repr }}</a>
+                                    {% endif %}
+                                    <span class="grp-font-color-quiet">{% filter capfirst %}{% trans entry.content_type.name %}{% endfilter %}</span>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
     </div>
-</div>
 {% endblock %}
+

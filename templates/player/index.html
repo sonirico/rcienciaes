@@ -1,0 +1,314 @@
+{% extends "base.html" %}
+
+
+{% load staticfiles %}
+
+{% block extrastyle %}
+    <link href="{% static 'player/css/custom.css' %}" rel="stylesheet" />
+
+    <style>
+        /* TODO: Change class id for cat slug*/
+        {% for c in category_list %}
+        .color-{{ c.id }}{
+            background-color: {{ c.color }} !important;
+            font-weight: bold;
+        }
+        {% endfor %}
+
+    </style>
+{% endblock %}
+
+
+{% block content %}
+
+    {% block player %}
+        <div class="row">
+
+            <div class="col-xs-12 col-md-3">
+                <div class="panel-group" >
+                    <div class="panel panel-info">
+                        <div class="panel-heading" data-toggle="collapse" href="#collapse-info" >
+                            <span class="glyphicon glyphicon-info-sign" ></span>
+                            <span class="lead ">Real time info</span>
+                        </div>
+                        <div id="collapse-info" class="panel-collapse collapse in" >
+                            <div class="panel-body" id="collapse" >
+                                <p>Current status: <strong id="playlist-status" >playing</strong></p>
+                                <p>Total time: <strong id="total_time" ></strong></p>
+                                <p>Current listeners: <strong id="current-listeners" ></strong></p>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+            <!--
+            <div class="col-xs-12 col-md-2">
+                <div class="jumbotron" >
+                    <!--<h3>Actions</h3>
+
+                </div>
+            </div>-->
+            <div class="col-xs-12 col-md-9">
+                <div class="panel-group" >
+                    <div class="panel panel-success" id="player-container" >
+                        <div class="panel-heading" data-toggle="collapse" href="#collapse-player" >
+                            <span class="glyphicon glyphicon-music" ></span>
+                            <span class="lead ">Player</span>
+                        </div>
+
+                        <div id="collapse-player" class="panel-collapse collapse in"  >
+
+                            <div class="row" >
+                                <!-- Audio info -->
+                                <div class="col-xs-12 col-md-4" >
+                                    <div id="audio-info" >
+                                        <table id="audio-info-data" class="table table-responsive" style="border: 0 !important">
+                                            <tbody>
+                                                <tr>
+                                                    <td rowspan="5">
+                                                        <img src="{% static 'images/loading.gif' %}"
+                                                     alt="cover" title="Click to scroll down"
+                                                     class="img-responsive img-thumbnail" id="cover-img"
+                                                     width="128" height="128"
+                                                     data-current-pitch="-1"  />
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td><p data-info-field="pitch" data-label="Pitch: " ></p></td>
+                                                </tr>
+                                                <tr>
+                                                    <td><p class="audio-info-element" data-info-field="type" data-label="Type: " ></p></td>
+                                                </tr>
+                                                <tr>
+                                                    <td><p class="audio-info-element" data-info-field="audio_title" data-label="Title: " ></p></td>
+                                                </tr>
+                                                <tr>
+                                                    <td><p class="audio-info-element" data-info-field="podcast_name" data-label="Podcast: " ></p></td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <div class="col-xs-12 col-md-8" >
+                                    <div class="progress-container" >
+                                        <!-- Progress bar -->
+
+                                        <div class="progress" data-toggle="tooltip"  >
+                                              <div id="the-progress-bar" class="progress-bar progress-bar-success progress-bar-striped active"
+                                                   role="progressbar"
+                                                   aria-valuenow="10"
+                                                   aria-valuemin="0"
+                                                   aria-valuemax="100" >
+                                                  <strong><span id="progress-text"></span></strong>
+                                              </div>
+                                        </div>
+
+                                        <!-- First button group -->
+
+                                        <div class="btn-group" role="group" aria-label="...">
+                                            <button type="button"
+                                                    class="btn btn-default btn-md action-button"
+                                                    title="One backward"
+                                                    data-action="previous" >
+                                                <span class="glyphicon glyphicon-backward" aria-hidden="true"></span>
+                                            </button>
+
+                                            <button type="button"
+                                                    class="btn btn-default btn-md action-button"
+                                                    title="Pause"
+                                                    data-action="pause" >
+                                                <span class="glyphicon glyphicon-pause" aria-hidden="true"></span>
+                                            </button>
+
+                                            <button type="button"
+                                                    class="btn btn-default btn-md action-button"
+                                                    title="Play"
+                                                    data-action="play" >
+                                                <span class="glyphicon glyphicon-play" aria-hidden="true"></span>
+                                            </button>
+
+                                            <button type="button"
+                                                    class="btn btn-default btn-md action-button"
+                                                    title="Stop"
+                                                    data-action="stop" >
+                                                <span class="glyphicon glyphicon-stop" aria-hidden="true"></span>
+                                            </button>
+
+                                            <button type="button" class="btn btn-default btn-md action-button" title="One forward" data-action="next" >
+                                                <span class="glyphicon glyphicon-forward" aria-hidden="true"></span>
+                                            </button>
+                                        </div>
+
+                                        <!-- Second button group -->
+
+                                        <div class="btn-group pull-right" role="group" aria-label="..." >
+                                            <button type="button" class="btn btn-default btn-md"
+                                                    title="Refresh playlist" data-action="refresh" onclick="document.location='/player/update_list/'">
+                                                <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                                                <a href="/player/update_list/">Refresh</a>
+                                            </button>
+                                            <!--
+                                            <button type="button" class="btn btn-default btn-md action-button" title="Reset playlist" data-action="reset" >
+                                                <span class="glyphicon glyphicon-eject" aria-hidden="true"></span>
+                                                <a href="/player/reset_list/">Reset</a>
+                                            </button>-->
+                                        </div>
+
+                                    </div>
+                                </div>
+
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    {% endblock %}
+
+    {% block playlist %}
+        <!-- Playlist -->
+        <div class="row" >
+            <div class="col-xs-12" >
+              <div class="table-responsive" >
+                <table id="grid-basic" class="table table-condensed table-hover" >
+                    <thead>
+                        <tr>
+                            <th>Pitch</th>
+
+                            <th class="text-center" >Type</th>
+
+                            <th class="text-center" >Play it</th>
+
+                            <th>Cover</th>
+
+                            <th>Title</th>
+
+                            <th>Podcast</th>
+
+                            <th class="text-center" >Duration</th>
+
+                            <th class="text-center" >Times played</th>
+
+                            <th class="text-center" >Last played at</th>
+
+                        </tr>
+                    </thead>
+                    <tbody>
+
+                        {% for audio in audio_list %}
+
+                            <tr class="draggable" data-songId="{{ forloop.counter0 }}" id="row-{{ forloop.counter0 }}" >
+
+                                <td data-audio-pos="{{ forloop.counter0 }}" >
+                                    <span class="pitch-number" >{{ forloop.counter }}</span>
+                                </td>
+
+                                <td class="color-{{ audio.get_category.id }}" >
+                                    {{ audio.get_category.name }}
+                                </td>
+
+                                <td class="text-center" >
+                                    <button type="button"
+                                            class="btn btn-default btn-xs play-it"
+                                            data-audio-pos="{{ forloop.counter0 }}" >
+                                        <span class="glyphicon glyphicon-play" aria-hidden="true"></span>
+                                    </button>
+                                </td>
+
+                                <td>
+                                    <img class="img-responsive img-thumbnail" src="{% static 'images/covers/' %}{{ audio.get_cover }}" width="32" height="32"/>
+                                </td>
+
+                                <td>
+                                    <a href="{{ audio.get_admin_url }}"
+                                       target="_blank"
+                                       title="{{ audio.title }}" class="resizable" >
+                                        {{ audio.title }}
+                                    </a>
+                                </td>
+
+                                <!--<td>{{ audio.get_category_name }}</td>-->
+                                <td>
+                                    {% ifequal audio.get_category_name "episode" %}
+                                        <a href="{{ audio.podcast.get_admin_url }}"
+                                           target="_blank"
+                                           title="{{ audio.podcast.name }}" class="resizable">
+                                            {{ audio.podcast.name }}
+                                        </a>
+                                    {% endifequal %}
+                                </td>
+                                <td class="text-right">
+                                    <time class="audio-duration" data-duration="{{ audio.duration }}"  ></time>
+                                </td>
+                                <td class="text-center">{{ audio.times_played }}</td>
+                                <td class="text-center" >
+                                    {% if audio.last_played_at %}
+                                        <a href="{{ audio.last_played_at.get_admin_url }}"
+                                           target="_blank"
+                                           title="{{ audio.last_played_at.started|date:'d-m-y H:i:s' }}" >
+                                            {{ audio.last_played_at.started|date:'d-m-Y H:i:s' }}
+                                        </a>
+                                    {% else %}
+                                        <span>Not played yet</span>
+                                    {% endif %}
+                                </td>
+                              </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="8" class="text-center">
+                                    <p class="lead" >Empty playlist!</p>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+              </div>
+            </div>
+        </div>
+
+    {% endblock %}
+    <div id="scroll-top" type="button" title="Go top" >
+        <span>Scroll up</span>
+        <span class="glyphicon glyphicon-circle-arrow-up" aria-hidden="true"></span>
+    </div>
+
+    <script src="{% static 'player/js/playlist.js' %}"></script>
+    <script>
+
+
+        // Estas funciones deben ser invocadas en este orden
+        $("#total_time").setTotalTime("audio-duration", "duration");
+        $("time.audio-duration").formatTime();
+        $(".resizable").resizeText();
+        // Tooltips
+
+        $('[data-toggle="tooltip"]').tooltip({
+            animated: 'fade',
+            placement: 'top',
+            title: 'Click to jump to your favourite part'
+        });
+
+        $('#cover-img').tooltip({
+            animated: 'fade',
+            placement: 'bottom',
+            title: 'Click to scroll down'
+        });
+
+
+        $(document).ready(function(){
+            setTimeout(core, 1000);
+        });
+
+        var screen_height = $(window).height();
+        var COVERS_DIR = '{% static "images/covers/" %}';
+
+    </script>
+
+{% endblock %}
+
+

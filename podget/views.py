@@ -1,37 +1,42 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
 import logging
 import os
 import urllib2
-from urlgrabber.grabber import URLGrabber
-import feedparser
 import dateutil.parser
-from mutagen.mp3 import MP3
-from mutagen.mp4 import MP4
-from mpc.models import MPDC
 import sys
 from datetime import datetime
 import time
+
+from urlgrabber.grabber import URLGrabber
+import feedparser
+from mutagen.mp3 import MP3
+from mutagen.mp4 import MP4
 from django.db import IntegrityError
 
-reload(sys)
-sys.setdefaultencoding("utf-8")
+from mpc.models import MPDC
+
+
+#reload(sys)
+#sys.setdefaultencoding("utf-8")
 
 from playlist.models import Podcast, Episode
 from playlist.views import update_playlist
 
-if not os.path.exists('logs'):
-    os.makedirs('logs')
+
+logger = logging.getLogger(__name__)
 
 
 class HeadRequest(urllib2.Request):
     def get_method(self):
         return "HEAD"
 
-logger = logging.getLogger(__name__)
-
 
 class DownloadManager():
+    """
+        Manager for episode downloads. Every file downloaded here will be considered as episode
+    """
     def __init__(self):
         self.c = 0
         self.busy = False
@@ -100,10 +105,10 @@ class DownloadManager():
                 _date_downloaded=self.episodio['_date_downloaded']
             )
             try:
-	            # Guardamos el episodio en la BBDD
-    	        new_episode.save()
+                # Guardamos el episodio en la BBDD
+                new_episode.save()
             except IntegrityError, e:
-				# Lo debemos borrar y pasar al siguiente
+                # Lo debemos borrar y pasar al siguiente
                 logger.info('Unable to save current episode by integrity error: %s' % e )
                 if os.path.isfile(relative_path):
                     os.remove(relative_path)
@@ -118,7 +123,7 @@ class DownloadManager():
             # Creamos la caratula
             new_episode.create_cover()
             #Y refrescamos la lista de reproduccion
-            update_playlist()
+            #update_playlist()
             # Nota: en las 2 ultimas llamadas se invoca a la funcion save(), ergo aqui sobra.
             logger.info('Downloaded and data-recorded')
             #except:
@@ -150,14 +155,13 @@ class DownloadManager():
                 if not downloaded_episodes.exists():
                     #construir un nombre de archivo único
                     extension = "." + str(item['audio_url']).split(".")[-1]
-                    audio_name = nombre.replace(" ", "_")
+                    audio_name = nombre.replace(" ", "-")
                     audio_name = unicode(audio_name + "_" + time.strftime('%Y_%m_%d-%H_%M_%S'))
                     filename = audio_name + extension
                     self.episodio['extension'] = extension
                     self.episodio['podcast_id'] = Podcast.objects.get(nombre=nombre)
                     self.episodio['url'] = str(item['audio_url'])
                     self.episodio['titulo'] = str(item['title'])
-                    self.episodio['_local_path'] = self.LOCAL_PATH
                     self.episodio['_filename'] = filename
                     self.episodio['_date_published'] = item['_date_published']
                     # Hay que comprobar que el audio que se descargaría no pertenece al mismo podcast del episodio que suena
@@ -235,9 +239,10 @@ class DownloadManager():
             c.client.close()
             return None
 
-    def datetime_with_format(self, entry):
+    def datetime_with_format(self, item):
         try:
-            published = entry.published_parsed
+            published = item['date_published']
+
             published = str(published[0])+"-"+str(published[1])+"-"+str(published[2])+\
                       " " + str(published[3])+":"+str(published[4])+":"+str(published[5])+"+0000"
             return dateutil.parser.parse(published)
