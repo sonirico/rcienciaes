@@ -8,7 +8,7 @@ from views import PlayerView
 from django.contrib.auth.decorators import login_required
 
 urlpatterns = [
-    url(r'^$', login_required(PlayerView.as_view())),
+    url(r'^$', login_required(PlayerView.as_view()), name='player'),
     url(r'^live/$', views.live),
     url(r'^live/tweet/$', views.post_tweet),
     url(r'^live/out/$', views.out),

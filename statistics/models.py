@@ -70,14 +70,7 @@ class IceCastRetriever(object):
         self.set_stats()
         return self.fields
 
-    def create_entry(self):
-        self.set_stats()
-        try:
-            self.fields['history_entry'] = PlaylistHistory.objects.latest('started')
-        except ObjectDoesNotExist, e:
-            logger.exception(e.message)
-        icecast_entry = IceCastStatsEntry(**self.fields)
-        icecast_entry.save()
+
 
 
 class IcecastListenersRetriever(IceCastRetriever):
@@ -112,17 +105,13 @@ class Listener(models.Model):
     def __unicode__(self):
         return self.hash
 
-class IceCastStatsEntry(models.Model):
-    total_listeners = models.PositiveIntegerField(default=0, verbose_name=u'Accumulative total listeners')
-    current_listeners = models.PositiveIntegerField(default=0, verbose_name=u'Currently connected listeners')
-    taken_at = models.DateTimeField(auto_now=False, auto_now_add=True, null=True, verbose_name=u'when this was picked up', editable=True)
-    history_entry = models.ForeignKey(PlaylistHistory, null=True, verbose_name=u'Related history entry')
 
-    class Meta:
-        verbose_name = u'Every single stats entry'
-        verbose_name_plural = u'Every single stats entry'
+
+
+class ListenersForHistory(models.Model):
+    entry_history = models.ForeignKey(PlaylistHistory, verbose_name=u'Playlist history entry')
+    listener_hash = models.CharField(verbose_name=u'Unique Hash', max_length=32, db_index=True)
+    taken_at = models.DateTimeField(verbose_name=u'When has it been recorded', auto_now=False, auto_now_add=True)
 
     def __unicode__(self):
-        #return self.history_entry.audio.title
-        return self.taken_at.strftime("%Y%m%d-%H%M%S")
-
+        return self.entry_history.audio.title

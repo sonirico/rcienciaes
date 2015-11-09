@@ -194,6 +194,12 @@ class Podcast(AdminBrowsableObject):
 
     category = models.ForeignKey(PodcastCategory, default=1)
 
+    def get_cover(self):
+        for episode in self.episode_set.all().order_by('-downloaded'):
+            if episode.get_cover() != DEFAULT_COVER_IMAGE:
+                return episode.get_cover()
+        return DEFAULT_COVER_IMAGE
+
     def deactivate_all(self):
         for episode in self.episode_set.all():
             episode.active = False
@@ -297,6 +303,7 @@ class PlaylistHistory(AdminBrowsableObject):
     started = models.DateTimeField(auto_now_add=True, auto_now=False)
     finished = models.DateTimeField(auto_now_add=False, auto_now=False, null=True)
     audio = models.ForeignKey(Audio, null=True, blank=True)
+    total_unique_listeners_count = models.PositiveIntegerField(default=0, verbose_name=u'Unique listeners count')
 
     class Meta:
         verbose_name = u'Playlist History'
@@ -304,6 +311,7 @@ class PlaylistHistory(AdminBrowsableObject):
 
     def stop(self):
         self.finished = timezone.now()
+        self.total_unique_listeners_count = self.listenersforhistory_set.count()
         self.save()
 
     def __unicode__(self):
