@@ -4,34 +4,169 @@
 
 {% block extrastyle %}
     <link href="{% static 'statistics/css/custom.css' %}" rel="stylesheet" />
+    <link href="{% static 'datepicker/bootstrap-datepicker.min.css' %}" rel="stylesheet" />
 {% endblock %}
 
 {% block content %}
 <div class="row">
-    {% block sidebar %}
-
-        <div class="col-xs-12 col-sm-3 col-md-2 sidebar">
-            <div class="container-fluid" >
-                <ul class="nav nav-sidebar" >
-                    <li class="active" ><a href="/stats/" >Timeline</a></li>
-                    <li><a href="/stats/between-dates/" >Between 2 dates</a></li>
-                    <li><a href="/stats/" >Some interesting stuff</a></li>
-                </ul>
-            </div>
-        </div>
-    {% endblock%}
 
     {% block main %}
-        <div class="col-xs-12 col-sm-9 col-md-10" >
-            <h1>hello stats</h1>
-            {% for entry in object_list %}
-            {{entry.history_entry}} -> {{entry.total_listeners}} | {{entry.current_listeners}} | {{entry.taken_at|date:"Y:m:d H:i:s"}}<br/>
-            {% endfor %}
+        <div class="col-xs-12 col-sm-9 col-md-8" >
+            <h1 class="text-center">Some queries</h1>
+            {% include 'statistics/queries.html' %}
+        </div>
+        <div class="col-xs-12 col-sm-3 col-md-4 chart-container" >
+            <!-- Modal panels -->
+            <div class="panel-group" >
+                <div class="panel panel-info">
+                    <div class="panel-heading text-center" data-toggle="collapse" href="#collapse-one" >
+                        <h4>
+                            <span class="glyphicon glyphicon-stats" ></span>
+                            Unique listeners - last 30 days
+                        </h4>
+                    </div>
+                    <div id="collapse-one" class="panel-collapse collapse in" >
+                        <div class="panel-body" >
+                            <canvas id="last-30-days" ></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="panel-group" >
+                <div class="panel panel-info">
+                    <div class="panel-heading text-center" data-toggle="collapse" href="#collapse-two" >
+                        <h4>
+                            <span class="glyphicon glyphicon-stats" ></span>
+                            Unique listeners - last year
+                        </h4>
+                    </div>
+                    <div id="collapse-two" class="panel-collapse collapse in" >
+                        <div class="panel-body"  >
+                            <canvas id="last-months" ></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     {% endblock %}
 
-{% endblock %}
+    <!-- Chart.js -->
+    <script src="{% static 'chartjs/Chart.min.js' %}" ></script>
+    <script>
+        //Chart.defaults.global.responsive = true;
+        jQuery.get('{% url "listeners-per-day" %}', function(data) {
+            var ctx = $("#last-30-days").get(0).getContext("2d");
+            new Chart(ctx).Line(data, {'responsive': true});
+
+
+        });
+        jQuery.get('{% url "listeners-per-month" %}', function(data) {
+            var ctx = $("#last-months").get(0).getContext("2d");
+            new Chart(ctx).Line(data, {'responsive': true});
+        });
+    </script>
 </div>
+<div class="container" >
+    <div class="row" style="background-color:white;">
+        <div class="col-lg-12 text-center" >
+            <h1>Podcasts' stats</h1>
+
+            <div class="table-responsive" >
+                <table class="table table-condensed table-hover" >
+                    <thead>
+                        <tr>
+                            <th colspan="2" >Podcast</th>
+                            <th>Unique listeners count</th>
+                            <th>Total times played</th>
+                            <th>Average - listeners / times played </th>
+                        </tr>
+                    </thead>
+                    <tbody id="podcast-stats-content" >
+                        <tr class="tmp-loading">
+                            <td colspan="4" class="text-center" >
+                                <img src="{% static 'images/loading.gif' %}" alt="loading" title="loading ... "/>
+                                Loading stats ... please wait
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+
+            <script>
+                var PODCAST_STATS = "{% url 'listeners-per-podcast' %}";
+                var podcast_ids = [];
+                var COVERS_DIR = "{% static 'images/covers/' %}";
+
+                jQuery(document).ready(function(){
+                    var request = jQuery.ajax({
+                        type: 'GET',
+                        url: PODCAST_STATS,
+                        dataType: 'json'
+                    });
+
+                    request.done(function(json, httpStatusCode){
+
+                        // Fills the chart
+
+                        jQuery('#podcast-stats-content > *').fadeOut('slow', function(){
+                            jQuery('#podcast-stats-content > *').remove();
+                            jQuery.each(json, function(k, v){
+
+                                $row = '<tr>';
+
+                                    $row += '<td id="cell-{0}" ></td>'.format(v[0]);
+                                    $row += '<td class="text-left" >{0}</td>'.format('<span>'+v[1]+'</span>');
+                                    $row += '<td>{0}</td>'.format(v[2]);
+                                    $row += '<td>{0}</td>'.format(v[3]);
+                                    $row += '<td>{0}</td>'.format(v[4]);
+
+                                $row += '</tr>';
+
+                                podcast_ids.push(v[0]);
+
+                                jQuery('#podcast-stats-content').append($row);
+                            });
+
+                            // Search for images
+
+                            for (var i in podcast_ids){
+
+                                var podcast_id = podcast_ids[i];
+
+                                var request = jQuery.ajax({
+                                    type: 'GET',
+                                    url: '/stats/podcast_thumbnail/{0}/'.format(podcast_id), // Hardcoded S:
+                                    dataType: 'json'
+                                });
+
+                                request.done(function(json){
+                                    $img = '<img class="img-responsive img-thumbnail"';
+                                    $img += ' src="{0}"  width="32" height="32" />'.format(COVERS_DIR + json.image);;
+                                    jQuery('#cell-' + json.id ).html($img);
+                                });
+
+                            } // End for
+
+
+                        });
+
+                    });
+
+                    request.fail(function(jqXHR, textStatus){
+                        jQuery('#podcast-stats-content > *').fadeOut('slow', function(){
+                            jQuery('#podcast-stats-content > *').remove();
+                            jQuery('#podcast-stats-content').append('<tr><td colspan="4">Unable to retrive stats</td></tr>');
+                        });
+                    });
+                });
+            </script>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
 
 {% block footer %}
 {% endblock %}

@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 # Register your models here.
-from models import IceCastStatsEntry, Listener
+from models import Listener
 
 
 class ListenerAdmin(admin.ModelAdmin):
@@ -10,8 +10,5 @@ class ListenerAdmin(admin.ModelAdmin):
     ordering = ['seconds_connected']
 
 
-class IceCastStatEntryAdmin(admin.ModelAdmin):
-    list_display = ('total_listeners', 'current_listeners', 'taken_at', 'history_entry')
 
-admin.site.register(IceCastStatsEntry, IceCastStatEntryAdmin)
 admin.site.register(Listener, ListenerAdmin)

@@ -224,7 +224,7 @@ class PodcastAdmin(admin.ModelAdmin):
 
 
 class PlaylistHistoryAdmin(admin.ModelAdmin):
-    list_display = ('started', 'finished', 'podcast', 'audio')
+    list_display = ('started', 'finished', 'podcast', 'audio', 'total_unique_listeners_count')
     ordering = ['-started']
 
     def podcast(self, instance):
