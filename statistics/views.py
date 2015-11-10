@@ -1,7 +1,7 @@
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, Http404, HttpResponseNotFound
 from django.views.generic import View, ListView
-from forms import BetweenDatesForm, InThePastDaysForm
+from forms import *
 from chartjs.views.lines import BaseLineChartView
 from models import ListenersForHistory
 from django.db import connection
@@ -143,26 +143,44 @@ class UniqueListenersPerMonthJSONView(LoginRequiredMixin, BaseLineChartView):
 
 
 class PodcastStatsView(LoginRequiredMixin, View):
+    form_class = PodcastStatsForm
+    initial = {}
     query = 'SELECT ' \
             'pp.id as podcast_id, ' \
             'pp.name as podcast_name, ' \
-            'sum(ph.total_unique_listeners_count) AS unique_listeners, ' \
-            'count(ph.total_unique_listeners_count) AS times_played, ' \
-            'avg(ph.total_unique_listeners_count) AS average ' \
+            'SUM(ph.total_unique_listeners_count) AS unique_listeners, ' \
+            'COUNT(ph.total_unique_listeners_count) AS times_played, ' \
+            'ROUND(avg(ph.total_unique_listeners_count), 2) AS average ' \
             'FROM playlist_playlisthistory as ph INNER JOIN playlist_episode as pe ON pe.audio_ptr_id = ph.audio_id ' \
             'INNER JOIN playlist_podcast as pp ON pp.id = pe.podcast_id ' \
+            ' %s ' \
             'GROUP BY pe.podcast_id ' \
             'ORDER BY ' \
             'unique_listeners DESC, ' \
             'times_played DESC, ' \
-            'average DESC ' \
-            ';'
+            'average DESC, ' \
+            'podcast_name,  ' \
+            'podcast_id  '
 
     def get(self, request):
         if request.is_ajax():
             cursor = connection.cursor()
-            cursor.execute(self.query)
+            cursor.execute(self.query % '')
             return HttpResponse(json.dumps(cursor.fetchall()), content_type='application/json')
+        else:
+            raise Http404
+
+    def post(self, request):
+        if request.is_ajax():
+            form = self.form_class(request.POST)
+            if form.is_valid():
+                cd = form.cleaned_data
+                podcast_name = cd.get('podcast_name')
+                cursor = connection.cursor()
+                cursor.execute(self.query % (' WHERE pp.name LIKE "%' + podcast_name + '%" '))
+                return HttpResponse(json.dumps(cursor.fetchall()), content_type='application/json')
+            else:
+                return HttpResponseNotFound(form.errors.as_json(), content_type='application/json')
         else:
             raise Http404
 

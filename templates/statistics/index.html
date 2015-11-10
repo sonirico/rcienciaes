@@ -71,7 +71,20 @@
         <div class="col-lg-12 text-center" >
             <h1>Podcasts' stats</h1>
 
+            <form class="form-inline text-left" role="form" >
+                <div class="form-group ">
+                    <label for="podcast-name">Podcast name:</label>
+                    {% csrf_token %}
+                    <input type="text"
+                           class="form-control"
+                           id="podcast-name"
+                           placeholder="Podcast name to consult"
+                           name="podcast-name" />
+                </div>
+            </form>
+
             <div class="table-responsive" >
+
                 <table class="table table-condensed table-hover" >
                     <thead>
                         <tr>
@@ -83,7 +96,7 @@
                     </thead>
                     <tbody id="podcast-stats-content" >
                         <tr class="tmp-loading">
-                            <td colspan="4" class="text-center" >
+                            <td colspan="5" class="text-center" >
                                 <img src="{% static 'images/loading.gif' %}" alt="loading" title="loading ... "/>
                                 Loading stats ... please wait
                             </td>
@@ -99,34 +112,74 @@
                 var COVERS_DIR = "{% static 'images/covers/' %}";
 
                 jQuery(document).ready(function(){
-                    var request = jQuery.ajax({
-                        type: 'GET',
-                        url: PODCAST_STATS,
-                        dataType: 'json'
+
+                    loadPodcastStats();
+
+                    // Form-filtering
+
+                    jQuery('#podcast-name').keyup(function( event ) {
+
+                        var podcastName = jQuery(this).val();
+
+                        if ( podcastName.length > 0 ) {
+
+                            var request = jQuery.ajax({
+                                type: 'POST',
+                                url: PODCAST_STATS,
+                                dataType: 'json',
+                                data: {
+                                    'csrfmiddlewaretoken': jQuery('[name=csrfmiddlewaretoken]').val(),
+                                    'podcast_name': podcastName,
+                                }
+                            });
+
+                            request.done(function(json, httpStatusCode){
+                                fillChart(json, httpStatusCode);
+                            });
+
+                            request.fail(function(jqXHR, httpStatusCode){
+                                jQuery('#podcast-stats-content > *').fadeOut('slow', function(){
+                                    jQuery('#podcast-stats-content > *').remove();
+                                    jQuery('#podcast-stats-content').append('<tr><td colspan="5">Unable to retrive stats</td></tr>');
+                                });
+                            });
+
+                        } else {
+                            loadPodcastStats();
+                        }
+
+
+                    }).keydown(function( event ) {
+                        if ( event.which == 13 ) {
+                            event.preventDefault();
+                        }
                     });
 
-                    request.done(function(json, httpStatusCode){
+                    // End form-filtering
+                });
 
-                        // Fills the chart
+                function fillChart(json, httpStatusCode){
 
-                        jQuery('#podcast-stats-content > *').fadeOut('slow', function(){
-                            jQuery('#podcast-stats-content > *').remove();
-                            jQuery.each(json, function(k, v){
+                    jQuery('#podcast-stats-content > *').fadeOut('slow', function(){
+                        jQuery('#podcast-stats-content > *').remove();
+                        jQuery.each(json, function(k, v){
 
-                                $row = '<tr>';
+                            $row = '<tr>';
 
-                                    $row += '<td id="cell-{0}" ></td>'.format(v[0]);
-                                    $row += '<td class="text-left" >{0}</td>'.format('<span>'+v[1]+'</span>');
-                                    $row += '<td>{0}</td>'.format(v[2]);
-                                    $row += '<td>{0}</td>'.format(v[3]);
-                                    $row += '<td>{0}</td>'.format(v[4]);
+                                $row += '<td id="cell-{0}" ></td>'.format(v[0]);
+                                $row += '<td class="text-left" >{0}</td>'.format('<span>'+v[1]+'</span>');
+                                $row += '<td>{0}</td>'.format(v[2]);
+                                $row += '<td>{0}</td>'.format(v[3]);
+                                $row += '<td>{0}</td>'.format(v[4]);
 
-                                $row += '</tr>';
+                            $row += '</tr>';
 
-                                podcast_ids.push(v[0]);
+                            podcast_ids.push(v[0]);
 
-                                jQuery('#podcast-stats-content').append($row);
-                            });
+                            jQuery('#podcast-stats-content').append($row);
+                        });
+
+                        if (podcast_ids.length > 0) {
 
                             // Search for images
 
@@ -148,18 +201,40 @@
 
                             } // End for
 
+                            podcast_ids.length = 0; // empties the array
 
-                        });
+                        } else {
+
+                            jQuery('#podcast-stats-content').append('<tr><td colspan="5">No podcasts with that name ... </td></tr>');
+
+                        }
+                    });
+                }
+
+                function loadPodcastStats(){
+
+                    var request = jQuery.ajax({
+                        type: 'GET',
+                        url: PODCAST_STATS,
+                        dataType: 'json'
+                    });
+
+                    request.done(function(json, httpStatusCode){
+
+                        // Fills the chart
+
+                        fillChart(json, httpStatusCode);
 
                     });
 
                     request.fail(function(jqXHR, textStatus){
                         jQuery('#podcast-stats-content > *').fadeOut('slow', function(){
                             jQuery('#podcast-stats-content > *').remove();
-                            jQuery('#podcast-stats-content').append('<tr><td colspan="4">Unable to retrive stats</td></tr>');
+                            jQuery('#podcast-stats-content').append('<tr><td colspan="5">Unable to retrive stats</td></tr>');
                         });
                     });
-                });
+
+                }//End loadPodcastStats function
             </script>
         </div>
     </div>

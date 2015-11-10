@@ -1,6 +1,11 @@
 from django import forms
 from django.utils import timezone
 
+class PodcastStatsForm(forms.Form):
+    podcast_name = forms.CharField(label=u'Podcast name', max_length=20)
+
+    def clean(self):
+        cleaned_data = super(PodcastStatsForm, self).clean()
 
 class InThePastDaysForm(forms.Form):
     days = forms.IntegerField(label=u'Days', required=True)
