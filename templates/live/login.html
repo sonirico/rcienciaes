@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+{% load i18n grp_tags %}
+<html lang="{{ LANGUAGE_CODE|default:'en-us' }}">
+<head>
+    <title>
+        {% block title %}{{ title }} | {% get_site_title %}{% endblock %}
+    </title>
+    {% block metas %}
+        <meta charset="UTF-8" />
+        <meta name="robots" content="NONE,NOARCHIVE,NOINDEX" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+    {% endblock %}
+    {% load staticfiles %}
+    <!-- STYLESHEETS -->
+    {% block stylesheets %}
+        <link rel="stylesheet" href="{% static 'player/css/bootstrap.min.css' %}" />
+        <link rel="stylesheet" href="{% static 'live/css/login.css' %}" />
+    {% endblock %}
+
+    <!-- EXTRASTYLES -->
+    {% block extrastyle %}
+    {% endblock %}
+
+    <!-- JAVASCRIPTS -->
+    {% block javascripts %}
+        <script src="{% static 'js/jquery.min.js' %}"></script>
+        <script src="{% static 'js/bootstrap.min.js' %}"></script>
+    {% endblock %}
+
+
+</head>
+
+<body>
+
+{% block content %}
+<div class="container">
+    {% for error in form.non_field_errors %}
+    <div class="alert alert-info">
+        <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
+        {{ error }}
+    </div>
+    {% endfor %}
+    <form class="form-signin" action="{% url 'login' %}" method="POST" >
+        {% csrf_token %}
+        <img src="{% static 'live/images/podmanager.ico.png' %}" class="img-responsive img-rounded center-block" />
+        <h2 class="form-signin-heading text-center" >Log-in to live event</h2>
+        <label for="username" class="sr-only">Username</label>
+        <input type="text" id="username" name="username" class="form-control" placeholder="Your nick here" required autofocus>
+        <label for="password" class="sr-only">Password</label>
+        <input type="password" id="password" name="password" class="form-control" placeholder="Password" required>
+
+        <button class="btn btn-lg btn-danger btn-block" type="submit">Log in</button>
+    </form>
+
+</div>
+{% endblock %}
+
+</body>
+</html>

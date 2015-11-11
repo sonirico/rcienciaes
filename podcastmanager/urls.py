@@ -6,6 +6,7 @@ from demo.views import index
 urlpatterns = [
     url(r'^$', index),
     url(r'^api/', include('api.urls')),
+    url(r'^live/', include('live.urls')),
     url(r'^grappelli/', include('grappelli.urls')),
     url(r'^player/', include('player.urls')),
     url(r'^playlist/', include('playlist.urls')),

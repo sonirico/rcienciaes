@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+{% load i18n grp_tags %}
+<html lang="{{ LANGUAGE_CODE|default:'en-us' }}">
+<head>
+    <title>
+        {% block title %}{{ title }} | {% get_site_title %}{% endblock %}
+    </title>
+
+    {% block metas %}
+        <meta charset="UTF-8" />
+        <meta name="robots" content="NONE,NOARCHIVE,NOINDEX" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+    {% endblock %}
+    {% load staticfiles %}
+    <!-- STYLESHEETS -->
+    {% block stylesheets %}
+        <link rel="stylesheet" href="{% static 'player/css/bootstrap.min.css' %}" />
+        <link rel="stylesheet" href="{% static 'player/css/custom_base.css' %}" />
+    {% endblock %}
+
+    <!-- EXTRASTYLES -->
+    {% block extrastyle %}
+    {% endblock %}
+
+    <!-- JAVASCRIPTS -->
+    {% block javascripts %}
+        <script src="{% static 'js/jquery.min.js' %}"></script>
+        <script src="{% static 'js/jquery-ui/jquery-ui.min.js' %}"></script>
+        <script src="{% static 'js/bootstrap.min.js' %}"></script>
+    {% endblock %}
+
+    <!-- EXTRAHEAD -->
+    {% block extrahead %}
+    {% endblock %}
+</head>
+<body>
+    {% block header %}
+        <!-- HEADER -->
+        <header>
+            <nav class="navbar navbar-inverse" >
+                <div class="container-fluid">
+                    <div class="navbar-header">
+                        <button type="button" class="navbar-toggle collapsed"
+                                data-toggle="collapse"
+                                data-target="#navbar"
+                                aria-expanded="false" aria-controls="navbar" >
+                            <span class="sr-only">Toggle navigation</span>
+                            <span class="icon-bar"></span>
+                            <span class="icon-bar"></span>
+                            <span class="icon-bar"></span>
+                        </button>
+                        <a class="navbar-brand" href="#"  >
+                            {% get_site_title %}
+                        </a>
+                    </div>
+                    <div id="navbar" class="navbar-collapse collapse">
+                        <!--
+                        <ul class="nav navbar-nav" >
+                            <li>
+                                <a href="{% get_admin_url %}" target="_blank" >
+                                    <span class="glyphicon glyphicon-home" ></span>
+                                    {% trans 'Home' %}
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{% url 'player' %}" target="_blank" >
+                                    <span class="glyphicon glyphicon-music" ></span>
+                                    {% trans 'Player' %}
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{% url 'stats' %}" target="_blank" >
+                                    <span class="glyphicon glyphicon-stats" ></span>
+                                    {% trans 'Stats' %}
+                                </a>
+                            </li>
+                        </ul>-->
+                        {% if user.is_authenticated %}
+                        <ul class="nav navbar-nav navbar-right">
+                            <!-- Userlinks -->
+                            {% block userlinks %}
+                            <li class="dropdown">
+                                <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button"
+                                   aria-haspopup="true" aria-expanded="false">
+                                    {% firstof user.get_short_name user.get_username %}
+                                    <span class="caret"></span>
+                                </a>
+                                <ul class="dropdown-menu">
+                                    <!-- Change Password -->
+                                    {% if user.has_usable_password %}
+                                        <li>
+                                            <a href="{% url 'admin:password_change' %}" class="grp-change-password">
+                                                <span class="glyphicon glyphicon-lock" ></span>
+                                                {% trans 'Change password' %}
+                                            </a>
+                                        </li>
+                                    {% endif %}
+                                     <!-- Logout -->
+                                    <li>
+                                        <a href="{% url 'logout' %}" class="grp-logout">
+                                            <span class="glyphicon glyphicon-log-out" ></span>
+                                            {% trans 'Log out' %}
+                                        </a>
+                                    </li>
+                                    <!-- Switch -->
+                                    {% switch_user_dropdown %}
+                                </ul>
+                            </li>
+                            {% endblock %}
+                        </ul>
+                        {% endif %}
+                    </div>
+                </div>
+            </nav>
+        </header>
+    {% endblock %}
+
+    <!-- MAIN CONTENT -->
+    <div class="container-fluid">
+    {% block content %}
+
+    {% endblock %}
+    </div>
+
+    <!-- FOOTER -->
+    {% block footer %}
+        <footer>
+
+        </footer>
+    {% endblock %}
+
+
+</body>
+</html>

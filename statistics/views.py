@@ -105,8 +105,7 @@ class UniqueListenersPerDayJSONView(LoginRequiredMixin, BaseLineChartView):
 
     def get_labels(self):  # Thanks to http://stackoverflow.com/questions/8746014/django-group-sales-by-month
         truncate_date = connection.ops.date_trunc_sql('day', 'taken_at')
-        qs = ListenersForHistory.objects.extra({'day': truncate_date}).values('day').distinct().order_by('-day')[
-             :self.days]
+        qs = ListenersForHistory.objects.extra({'day': truncate_date}).values('day').distinct().order_by('-day')[:self.days]
         return [datetime.strptime(record.get('day'), '%Y-%m-%d').strftime('%d/%m') for record in qs]
 
     def get_data(self):

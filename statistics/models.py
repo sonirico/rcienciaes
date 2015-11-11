@@ -1,12 +1,9 @@
 import requests
 import logging
 import xml.etree.ElementTree as ET
-from django.shortcuts import render
-
 from django.db import models
 from requests.exceptions import ConnectionError
 from settings import *
-from django.core.exceptions import ObjectDoesNotExist
 from playlist.models import PlaylistHistory
 # This class will parse our XML data
 # Partially stolen from:
@@ -58,7 +55,6 @@ class IceCastRetriever(object):
         except:
             raise IcecastError("Error parsing xml")
 
-
     def set_stats(self):
         try:
             for field in self.fields:
@@ -104,8 +100,6 @@ class Listener(models.Model):
 
     def __unicode__(self):
         return self.hash
-
-
 
 
 class ListenersForHistory(models.Model):
