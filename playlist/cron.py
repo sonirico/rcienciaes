@@ -8,7 +8,7 @@ import logging
 
 from podget.models import DownloadManager
 from playlist.views import update_playlist
-from player.views import podcaster_in_the_air
+from live.views import is_anybody_online
 from mpc.models import MPDC
 from podcastmanager.settings import MEDIA_URL, AUDIOS_URL, TWITTER_ENABLED
 from playlist.models import Episode, Promotion
@@ -33,11 +33,10 @@ def update():
 
 @kronos.register('* * * * *')
 def check_streaming():
-    if not podcaster_in_the_air():
+    if not is_anybody_online():
         pm = PlayListManager()
         if pm.status().get('state') != 'play':
-            pass
-            #pm.play()
+            pm.play()
         pm.close()
 
 

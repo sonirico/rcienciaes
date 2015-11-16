@@ -32,7 +32,7 @@ def create_podcaster(podcast_nombre=''):
         if len(redone_username) > 4:
             username = redone_username[:15]
         try:
-            new_user = User(username=username, is_staff=True, is_active=True)
+            new_user = User(username=username, is_staff=False, is_active=True)
             new_user.set_password('cambiaesto')
             new_user.save()
             pod_group.user_set.add(new_user)

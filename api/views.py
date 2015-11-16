@@ -8,8 +8,8 @@ from django.http import HttpResponse
 from django.core.exceptions import ObjectDoesNotExist
 from mpc.models import MPDC
 from playlist.models import Episode, Podcast
-from live.models import LiveEntry
-from player.views import podcaster_in_the_air
+from live.models import Event
+from live.views import is_anybody_online
 from podcastmanager.settings import AUDIOS_URL, DEFAULT_COVER_IMAGE
 
 # Create your views here.
@@ -21,8 +21,8 @@ def index(request):
 
 def live(request):
     data = {}
-    if bool(podcaster_in_the_air()):
-        live_entry = LiveEntry.objects.latest('start_date')
+    if bool(is_anybody_online()):
+        live_entry = Event.objects.latest('started_at')
         data['live'] = 'on'
         data['artist'] = live_entry.artist
         data['event_title'] = live_entry.event_title

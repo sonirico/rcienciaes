@@ -26,7 +26,6 @@
     <!-- JAVASCRIPTS -->
     {% block javascripts %}
         <script src="{% static 'js/jquery.min.js' %}"></script>
-        <script src="{% static 'js/jquery-ui/jquery-ui.min.js' %}"></script>
         <script src="{% static 'js/bootstrap.min.js' %}"></script>
     {% endblock %}
 
@@ -55,27 +54,7 @@
                         </a>
                     </div>
                     <div id="navbar" class="navbar-collapse collapse">
-                        <!--
-                        <ul class="nav navbar-nav" >
-                            <li>
-                                <a href="{% get_admin_url %}" target="_blank" >
-                                    <span class="glyphicon glyphicon-home" ></span>
-                                    {% trans 'Home' %}
-                                </a>
-                            </li>
-                            <li>
-                                <a href="{% url 'player' %}" target="_blank" >
-                                    <span class="glyphicon glyphicon-music" ></span>
-                                    {% trans 'Player' %}
-                                </a>
-                            </li>
-                            <li>
-                                <a href="{% url 'stats' %}" target="_blank" >
-                                    <span class="glyphicon glyphicon-stats" ></span>
-                                    {% trans 'Stats' %}
-                                </a>
-                            </li>
-                        </ul>-->
+
                         {% if user.is_authenticated %}
                         <ul class="nav navbar-nav navbar-right">
                             <!-- Userlinks -->
@@ -90,7 +69,7 @@
                                     <!-- Change Password -->
                                     {% if user.has_usable_password %}
                                         <li>
-                                            <a href="{% url 'admin:password_change' %}" class="grp-change-password">
+                                            <a href="{% url 'password_change' %}" class="grp-change-password" >
                                                 <span class="glyphicon glyphicon-lock" ></span>
                                                 {% trans 'Change password' %}
                                             </a>

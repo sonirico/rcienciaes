@@ -1,49 +1,26 @@
 from django.db import models
-from django.contrib.auth.models import User, Group
-from django.core.exceptions import ObjectDoesNotExist
-from datetime import datetime
-from podcastmanager.settings import STATIC_URL, LIVE_COVERS_FOLDER
+from django.contrib.auth.models import User
+from podcastmanager.settings import LIVE_COVERS_FOLDER, DEFAULT_COVER_IMAGE
 import os
 
-
-class LiveEntry(models.Model):
-    user = models.ForeignKey(User, limit_choices_to={'groups__name': 'podcasters'}, verbose_name='Podcaster emitiendo en directo')
-    event_title = models.CharField(max_length=200, verbose_name='Titulo del evento')
-    artist = models.CharField(max_length=200, verbose_name='Artista/s en directo')
-    cover_file = models.CharField(max_length=200, null=True, verbose_name="Nombre del archivo que subieron")
-    start_date = models.DateTimeField(verbose_name='Empezo a emitir')
-    end_date = models.DateTimeField(null=True, verbose_name='Termino de emitir')
-
-    def user_was_podcaster(self):
-        try:
-            pod_group = Group.objects.get(name='podcasters')
-            return pod_group in self.user.groups
-        except ObjectDoesNotExist:
-            return False
-
-    # Guarda covers de los usuarios live. Nombre imagen = nombreusuario_fecha.extension
-    def handle_cover(self, cover_file):
-        if cover_file is not None:
-            extension = '.' + cover_file.name.split('.').pop()
-            p_filename = self.user.username + '_' + datetime.now().strftime("%Y%m%d%H%M%S") + extension
-            #TODO: solve static root issue
-            filename = None
-            #filename = os.path.join(STATIC_ROOT, LIVE_COVERS_FOLDER, p_filename)
-            with open(filename, 'wb+') as destination:
-                for chunk in cover_file.chunks():
-                    destination.write(chunk)
-                destination.close()
-                if not destination.closed:
-                    print 'Live user cover not closed.'
-            return p_filename
-        return None
-
-    def get_image_file(self):
-        if self.cover_file is None or len(self.cover_file) <= 0:
-            return str(os.path.join(STATIC_URL, LIVE_COVERS_FOLDER, self.DEFAULT_IMAGE))
-        else:
-            return str(os.path.join(STATIC_URL, LIVE_COVERS_FOLDER, self.cover_file))
+class Event(models.Model):
+    user = models.ForeignKey(User, verbose_name=u'Podcaster emitiendo en directo')
+    event_title = models.CharField(max_length=200, verbose_name=u'Titulo del evento')
+    artists = models.CharField(max_length=200, verbose_name=u'Artista/s en directo')
+    first_tweet = models.CharField(max_length=140, verbose_name=u'Tweet content', null=True, blank=True)
+    cover = models.ImageField(null=True, blank=True, upload_to=LIVE_COVERS_FOLDER, default=DEFAULT_COVER_IMAGE)
+    started_at = models.DateTimeField(auto_now_add=True, auto_now=False, verbose_name=u'Empezo a emitir')
+    ended_at = models.DateTimeField(null=True, verbose_name=u'Termino de emitir')
 
     class Meta:
-        verbose_name = u'Registros del modo Live'
+        verbose_name = u'Live entries'
         verbose_name_plural = verbose_name
+
+    def get_cover(self):
+        """
+        :return: String. File name of the image of the event
+        """
+        if self.cover is not None and len(self.cover.name) > 0:
+            return os.path.basename(self.cover.name)
+        else:
+            return False

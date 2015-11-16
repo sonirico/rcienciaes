@@ -14,7 +14,7 @@ from mpc.models import MPDC
 from player.models import Player
 from playlist.models import Episode, PlaylistHistory as PlayHistory
 from forms import *
-from live.models import LiveEntry
+from live.models import Event
 from playlist.views import tweet
 
 
@@ -80,7 +80,7 @@ def render_podcaster(request):
         form = LiveForm(request.POST, request.FILES)
         if form.is_valid():
             cd = form.cleaned_data
-            live_entry = LiveEntry(
+            live_entry = Event(
                 user=request.user,
                 event_title=cd['event_title'],
                 artist=cd['artists'],
@@ -230,7 +230,7 @@ def post_tweet(request):
 @staff_member_required
 def out(request):
     try:
-        last_live_entry = LiveEntry.objects.latest('start_date')
+        last_live_entry = Event.objects.latest('start_date')
         last_live_entry.end_date = datetime.now()
         last_live_entry.save()
         play()
@@ -239,17 +239,6 @@ def out(request):
         # Nunca se debería entrar aqui ...
         pass
     return redirect('/admin/logout/')
-
-# Extra functions
-
-
-def podcaster_in_the_air():
-    try:
-        last_live_entry = LiveEntry.objects.latest('start_date')
-        return bool(last_live_entry.end_date is None)
-    except ObjectDoesNotExist, e:
-        # There are no entries yet, so True
-        return False
 
 
 def pause():

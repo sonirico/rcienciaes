@@ -1,10 +1,254 @@
 {% extends 'live/base.html' %}
 
+{% load staticfiles %}
+
 {% block extrastyle %}
+<link type="text/css" rel="stylesheet" href="{% static 'jsteps/jquery.steps.css' %}"/>
+<link type="text/css" rel="stylesheet" href="{% static 'live/css/index.css' %}"/>
 {% endblock %}
 
 {% block content %}
-<h1>Live mode begins!</h1>
+
+<div class="row">
+    <div class="col-md-2"></div>
+    <div class="col-md-8 jumbotron">
+        <h2 class="text-center "><u>Evento nuevo</u></h2>
+        <span class="lead">
+            A continuación se piden una serie de datos que empleará nuestra API y que
+            recibirán el resto de aplicaciones que conectan con <strong>Radio Podcastellano</strong>, donde
+            se verán reflejados. ¡Presta atención!
+        </span>
+    </div>
+    <div class="col-md-2"></div>
+</div>
+
+<div class="row">
+
+    <div class="col-md-2"></div>
+    <div class="col-md-8 steps-container">
+
+        <form id="form-live" action="{% url 'event-create' %}" method="post" enctype="multipart/form-data" role="form">
+            <h3>Datos de emisión</h3>
+            <section>
+                <div class="form-group">
+                    {% for field in form %}
+                        <div class="fieldWrapper">
+                            {{ field.errors }}
+                            {{ field.label_tag }} {{ field }}
+                            {% if field.help_text %}
+                            <p class="help">{{ field.help_text|safe }}</p>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                    <label class="control-label col-sm-4" for="cover">
+                        Imagen de portada
+                    </label>
+
+                    <div class="col-sm-8">
+                        <input id="cover" name="cover" type="file" placeholder="Sube una imagen"/>
+
+                        <p class="help-block">
+                            Si no especificas ninguna, se enviará
+                            <a href="{% static 'images/covers/default.png' %}" target="_blank">esta</a>
+                        </p>
+                    </div>
+                </div>
+                <br/><br/>
+                <div class="form-group">
+                    <label class="control-label col-sm-4" for="event_title">Título del evento</label>
+
+                    <div class="col-sm-8">
+                        <input id="event_title" class="form-control" placeholder="Título del evento"
+                               maxlength="200" name="event_title" type="text" required/>
+                    </div>
+                </div>
+                <br/><br/>
+                <div class="form-group">
+                    <label class="control-label col-sm-4" for="artists">Nombre de los artistas</label>
+
+                    <div class="col-sm-8">
+                        <input id="artists" class="form-control" placeholder="Artista o conjunto de artistas"
+                               maxlength="200" name="artists" type="text" required/>
+                    </div>
+                </div>
+            </section>
+
+            <h3>Tuitea acerca de tu evento</h3>
+
+            <section>
+
+                <div class="form-group" >
+                    <div class="row" >
+                        <div class="col-xs-12" >
+                            <label for="tweet-content" class="control-label" >
+                                Tuitea acerca del inicio de tu evento. No es necesario que lo hagas ahora, más adelante
+                                tendrás la opción de hacerlo durante tu estancia en modo directo cuantas veces quieras.
+                                <br>
+                                Este y demás tuits se publicarán en la cuenta de
+                                <a href="https://twitter.com/Radio_Podcast">Radio Podcastellano</a>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="row" >
+                        <div class="col-md-3" >
+                            <img id="twitter-icon"
+                                 src="{% static 'images/twitter-icon.png' %}"
+                                 class="img-responsive center-block" width="64px" />
+                        </div>
+                        <div class="col-md-9" >
+                            <textarea class="form-control col-md-12"
+                                      id="tweet-content"
+                                      maxlength="140"
+                                      name="first_tweet"
+                                      resizable  ></textarea>
+                            <p class="help-block" id="chars" >140</p>
+                        </div>
+                    </div>
+
+                </div>
+
+            </section>
+            <h3>Entra en modo directo</h3>
+            <section>
+                <h3 class="text-center">Recordatorio</h3>
+                <p>
+                    Una vez hayas entrado en <em>modo directo</em>, <strong>pausarás la reproducción automática</strong> de
+                    Radio Podcastellano. Una vez finalizada la emisión en directo, debes desactivar el
+                    <em>modo directo</em> para que la aplicación siga su curso normal y continúe con el streaming.
+                    <strong>Es importante ese último paso, ¡Si no, la reproduccion quedaría pausada!</strong>
+                </p>
+            </section>
+            {% csrf_token %}
+        </form>
+
+    </div>
+    <div class="col-md-2"></div>
+
+</div>
+
+<script src="{% static 'jsteps/jquery.steps.min.js' %}"></script>
+<script src="{% static 'jvalidator/jquery.validate.min.js' %}"></script>
+<script>
+
+$(document).ready(function(){
+
+    var form = $("#form-live").show();
+    var orientation = "vertical"; //1
+    var file_size = 0;
+    var MAX_FILE_SIZE = 2; //MB
+
+    if ($(window).width() <= 768){
+        orientation = "horizontal";
+    }
+
+    form.steps({
+        labels: {
+            finish: "Entrar en directo",
+            next: "Siguiente",
+            previous: "Anterior",
+        },
+        headerTag: "h3",
+        bodyTag: "section",
+        transitionEffect: "slideLeft",
+        stepsOrientation: orientation,
+        onStepChanging: function (event, currentIndex, newIndex)
+        {
+            //if (currentIndex > newIndex) return true;
+
+
+            // Needed in some cases if the user went back (clean up)
+            if (currentIndex < newIndex){
+                // To remove error styles
+                form.find(".body:eq(" + newIndex + ") label.error").remove();
+                form.find(".body:eq(" + newIndex + ") .error").removeClass("error");
+            }
+            form.validate().settings.ignore = ":disabled,:hidden";
+            return form.valid();
+        },
+        onFinishing: function (event, currentIndex)
+        {
+            form.validate().settings.ignore = ":disabled";
+            return form.valid();
+        },
+        onFinished: function (event, currentIndex)
+        {
+            form.submit();
+        }
+    }).validate({
+        rules: {
+            cover : {
+                required: false,
+                extension : "jpg|jpeg|png|gif|svg|ico",
+                maxSize: MAX_FILE_SIZE,
+            },
+            event_title : {
+                required : true,
+                minlength : 2
+            },
+            artists : {
+                required : true,
+                minlength : 2
+            }
+        },
+        messages : {
+            cover: {
+                extension : "Extensiones permitidas: jpg,jpeg,png,gif,svg,ico"
+            },
+            event_title : {
+                required : "Se requiere un título para el evento",
+                minlength : "Escribe algo de más de 2 caracteres, anda"
+            },
+            artists : {
+                required : "Se requiere saber los artistas",
+                minlength : "Escribe algo de más de 2 caracteres, anda"
+            }
+        }
+    });
+
+    /* textarea stuff */
+    jQuery('#tweet-content').keyup(function(event){
+        var $chars = jQuery('#chars');
+        var length = jQuery(this).val().length;
+
+        if ( length >= 130 ) $chars.css({color: 'red'});
+        else                $chars.css({color: 'grey'});
+
+        $chars.text(140 - length);
+    }).keydown(function( event ) {
+        if ( event.which == 13 ) {
+            event.preventDefault();
+        }
+    });
+
+
+    /* Image size */
+    jQuery('#cover').bind('change', function(){
+        file_size = this.files[0].size / (1024 * 1024);
+    });
+
+    jQuery.validator.addMethod("maxSize", function(value, element, max_size){
+        if (value.length <= 0) return true;
+        else return file_size <= max_size;
+    }, "La imagen es demasiado grande. " + MAX_FILE_SIZE + "MB como máximo.");
+
+    jQuery.validator.addMethod('extension', function(value, element, allowed_extensions){
+        if (value.length <= 0) return true;
+        if (value.indexOf('.') != -1 || this.optional(element) ){
+            cover_ext = value.split('.')[1];
+            allowed_extensions = allowed_extensions.split('|');
+            for ( i in allowed_extensions )
+                if ( allowed_extensions[i] == cover_ext )
+                    return true;
+            return false;
+        } else {
+            return false;
+        }
+    });
+
+});
+
+
+</script>
 {% endblock %}
 
 {% block footer %}

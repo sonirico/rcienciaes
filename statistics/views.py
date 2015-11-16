@@ -1,4 +1,5 @@
 from django.contrib.auth.decorators import login_required
+from django.contrib.admin.views.decorators import staff_member_required
 from django.http import HttpResponse, Http404, HttpResponseNotFound
 from django.views.generic import View, ListView
 from forms import *
@@ -11,6 +12,13 @@ from playlist.views import Podcast
 import json
 
 
+class StaffMemberRequiredMixin(object):
+    @classmethod
+    def as_view(cls, **initkwargs):
+        view = super(StaffMemberRequiredMixin, cls).as_view(**initkwargs)
+        return staff_member_required(view)
+
+
 class LoginRequiredMixin(object):
     @classmethod
     def as_view(cls, **initkwargs):
@@ -18,7 +26,7 @@ class LoginRequiredMixin(object):
         return login_required(view)
 
 
-class StatsView(LoginRequiredMixin, ListView):
+class StatsView(StaffMemberRequiredMixin, ListView):
     template_name = 'statistics/index.html'
     title = 'Stats'
     context_object_name = 'podcast_list'
@@ -32,7 +40,7 @@ class StatsView(LoginRequiredMixin, ListView):
         return context
 
 
-class InThePastDays(LoginRequiredMixin, View):
+class InThePastDays(StaffMemberRequiredMixin, View):
     form_class = InThePastDaysForm
     initial = {}
 
@@ -56,7 +64,7 @@ class InThePastDays(LoginRequiredMixin, View):
             raise Http404
 
 
-class BetweenTwoDates(LoginRequiredMixin, View):
+class BetweenTwoDates(StaffMemberRequiredMixin, View):
     form_class = BetweenDatesForm
     initial = {}
 
@@ -81,7 +89,7 @@ class BetweenTwoDates(LoginRequiredMixin, View):
         raise Http404
 
 
-class UniqueListenersPerEpisode(LoginRequiredMixin, BaseLineChartView):
+class UniqueListenersPerEpisode(StaffMemberRequiredMixin, BaseLineChartView):
     def get_labels(self):
         return ['<img src="http://localhost:8000/static/images/covers/2192909-gyakuten_kenji_artwork_01.jpg" ']
 
@@ -89,7 +97,7 @@ class UniqueListenersPerEpisode(LoginRequiredMixin, BaseLineChartView):
         return [[3], ]
 
 
-class UniqueListenersPerDayJSONView(LoginRequiredMixin, BaseLineChartView):
+class UniqueListenersPerDayJSONView(StaffMemberRequiredMixin, BaseLineChartView):
     days = 30
     query = 'select count(*) ' \
             'from ( ' \
@@ -114,7 +122,7 @@ class UniqueListenersPerDayJSONView(LoginRequiredMixin, BaseLineChartView):
         return [[record[0] for record in cursor.fetchall()], ]
 
 
-class UniqueListenersPerMonthJSONView(LoginRequiredMixin, BaseLineChartView):
+class UniqueListenersPerMonthJSONView(StaffMemberRequiredMixin, BaseLineChartView):
     months = 12
     query = 'select count(*) ' \
             'from ( ' \
@@ -141,7 +149,7 @@ class UniqueListenersPerMonthJSONView(LoginRequiredMixin, BaseLineChartView):
         return [[record[0] for record in cursor.fetchall()], ]
 
 
-class PodcastStatsView(LoginRequiredMixin, View):
+class PodcastStatsView(StaffMemberRequiredMixin, View):
     form_class = PodcastStatsForm
     initial = {}
     query = 'SELECT ' \
@@ -184,7 +192,7 @@ class PodcastStatsView(LoginRequiredMixin, View):
             raise Http404
 
 
-class PodcastImageview(LoginRequiredMixin, View):  # Consider using DetailView class in  the near future
+class PodcastImageview(StaffMemberRequiredMixin, View):  # Consider using DetailView class in  the near future
     def get(self, request, *args, **kwargs):
         id = int(kwargs.get('podcast_id'))
         podcast = get_object_or_404(Podcast, pk=id)
@@ -192,76 +200,4 @@ class PodcastImageview(LoginRequiredMixin, View):  # Consider using DetailView c
         data['id'] = id
         data['image'] = podcast.get_cover()
         return HttpResponse(json.dumps(data), content_type='application/json')
-'''
-select result.month, count(*)
-from (
-    select
-        listener_hash,
-        Substr(taken_at, 0, 8) as month
-    from statistics_listenersforhistory
-    group by listener_hash, Substr(taken_at, 0, 8)
-) AS result
-GROUP BY result.month;
 
-One line
-select result.month, count(*) from ( select listener_hash, Substr(taken_at, 0, 8) as month from statistics_listenersforhistory group by listener_hash, Substr(taken_at, 0, 8) ) AS result GROUP BY result.month;
-select result.days, count(*) from ( select listener_hash, Substr(taken_at, 0, 12) as days from statistics_listenersforhistory group by listener_hash, Substr(taken_at, 0, 12) ) AS result GROUP BY result.days;
-
--- Listeners per podcast -- @deprecated
-
-SELECT
-    pp.name AS podcast_name,
-    SUM(ll.total) AS total_listeners,
-    count(ll.total) AS total_listeners_count
-FROM
-    (
-        SELECT
-            pe.podcast_id AS 'podcast_id',
-            count(*) AS 'total'
-        FROM statistics_listenersforhistory AS sl INNER JOIN playlist_playlisthistory AS ph
-            ON sl.entry_history_id = ph.id INNER JOIN playlist_episode AS pe ON pe.audio_ptr_id = ph.audio_id
-        GROUP BY
-            ph.audio_id
-        ORDER BY
-            count(*) DESC
-    ) AS ll INNER JOIN playlist_podcast AS pp ON ll.podcast_id = pp.id
-GROUP BY
-    pp.id,
-    pp.name
-ORDER BY
-    total_listeners DESC
-;
-
-
-
-SELECT
-    pp.name,
-    pp.active_episode_id,
-    count(ph.total_unique_listeners_count) as "times_played",
-    sum(ph.total_unique_listeners_count) as "unique_listeners",
-    avg(ph.total_unique_listeners_count) as "average"
-FROM playlist_playlisthistory as ph INNER JOIN playlist_episode as pe ON pe.audio_ptr_id = ph.audio_id
-     INNER JOIN playlist_podcast as pp ON pp.id = pe.podcast_id
-GROUP BY pe.podcast_id
-ORDER BY
-    unique_listeners DESC,
-    times_played DESC,
-    average DESC
-;
-
-
--- Listeners between 2 dates
-
-SELECT COUNT(*)
-FROM
-(
-    SELECT *
-    FROM statistics_listenersforhistory as sl
-    WHERE taken_at >= '2015-11-01 00:00:00' and taken_at <= '2015-11-08 00:00:00'
-    GROUP BY listener_hash
-);
-
-
-
-
-'''

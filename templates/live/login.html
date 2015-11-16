@@ -36,17 +36,30 @@
 {% block content %}
 <div class="container">
     {% for error in form.non_field_errors %}
-    <div class="alert alert-info">
+    <div class="alert alert-danger">
         <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
         {{ error }}
     </div>
     {% endfor %}
+
+    {% if request.GET.message %}
+    <div class="alert alert-info" >
+        ¡Bueno! Parece que todo ha acabado bien...
+        <a href="#" class="close" data-dismiss="alert" aria-label="close">
+            <span class="glyphicon glyphicon-remove" ></span>
+        </a>
+    </div>
+    {% endif %}
+
     <form class="form-signin" action="{% url 'login' %}" method="POST" >
         {% csrf_token %}
         <img src="{% static 'live/images/podmanager.ico.png' %}" class="img-responsive img-rounded center-block" />
+
         <h2 class="form-signin-heading text-center" >Log-in to live event</h2>
+
         <label for="username" class="sr-only">Username</label>
         <input type="text" id="username" name="username" class="form-control" placeholder="Your nick here" required autofocus>
+
         <label for="password" class="sr-only">Password</label>
         <input type="password" id="password" name="password" class="form-control" placeholder="Password" required>
 

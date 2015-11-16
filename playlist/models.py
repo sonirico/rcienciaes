@@ -1,6 +1,6 @@
 # -*- coding: UTF-8 -*-
 
-from django.db import models, IntegrityError
+from django.db import models
 from django.contrib.contenttypes.models import ContentType
 from django.utils import timezone
 
@@ -358,21 +358,19 @@ class PlayListManager(object):
     def add_song(self, file_name):
         real_path = os.path.join(AUDIOS_URL, file_name)
         if os.path.isfile(real_path):
-            print 'File exists: ' + real_path
             try:
                 self.client.add(file_name)
-                print 'Added to playlist: %s' % real_path
-            except:
-                print 'Exception ocurred adding: %s' % real_path
-        else:
-            print 'No file %s in directory %s' % (file_name, (BASE_DIR + '/audios/'))
+            except Exception, e:
+                pass
 
     def close(self):
         self.client.close()
 
+    def pause(self):
+        self.client.pause()
+
     def play(self):
         self.client.repeat(1)
-        print 'Looped playlist'
         self.client.play()
 
     def move(self, song_id):

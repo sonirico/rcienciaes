@@ -1,8 +1,10 @@
 from podcastmanager.settings import COVERS_URL
-from django.db.models.fields.files import FieldFile
 from datetime import datetime
 from normalize import normalize
 from mutagen import File
+from mutagen.mp3 import MP3
+from mutagen.mp4 import MP4
+from mutagen.oggvorbis import OggVorbis
 
 import logging
 import os
@@ -64,11 +66,6 @@ def calculate_duration(sender, instance, *args, **kwargs):
             if new_duration is not False:
                 instance.duration = new_duration
                 instance.save()
-
-
-from mutagen.mp3 import MP3
-from mutagen.mp4 import MP4
-from mutagen.oggvorbis import OggVorbis
 
 
 def get_audio_duration(filename):

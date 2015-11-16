@@ -1,0 +1,55 @@
+{% extends 'live/login.html' %}
+
+{% load staticfiles %}
+
+{% block content %}
+<div class="container">
+    <div class="row" >
+        <div class="col-md-4" ></div>
+        <div class="col-md-4" >
+
+            <h2 class="text-center">
+                Vas a tener que esperar
+                <br/>
+                <small class="text-center lead" >Parece que ya hay alguien emitiendo en directo.</small>
+            </h2>
+
+
+
+            {% if event %}
+
+            <ul class="list-group">
+                <li class="list-group-item">
+                    <strong>Evento</strong>:
+                    {{event.event_title}}
+                </li>
+                <li class="list-group-item">
+                    <strong>Artista/s:</strong>
+                    {{event.artists}}
+                </li>
+            </ul>
+
+            <img src="#"  id="event-cover" class="img-responsive img-rounded center-block" />
+
+            <script>
+                if ( "{{event.get_cover}}" != "{{ default_cover }}" ) {
+                    var COVER_URI = "{% static 'images/live_covers/' %}{{event.get_cover}}";
+                    jQuery('#event-cover').removeAttr('src').attr('src', COVER_URI);
+                } else {
+                    jQuery('#event-cover').hide();
+                }
+            </script>
+
+            {% endif %}
+
+            <br/>
+
+            <a href="{% url 'login' %}" class="btn btn-info center-block" role="button" >Inténtalo de nuevo</a>
+        </div>
+        <div class="col-md-4" ></div>
+    </div>
+</div>
+{% endblock %}
+
+</body>
+</html>

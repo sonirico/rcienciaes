@@ -1,0 +1,106 @@
+{% extends 'live/base.html' %}
+
+{% load staticfiles %}
+
+{% block extrastyle %}
+<link rel="stylesheet" href="{% static 'live/css/on.css' %}" type="text/css" />
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="container">
+        <div class="row">
+
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="container" >
+        <div class="row" >
+            <div class="col-md-4" >
+            {% block info %}
+                <h3 class="text-center">Estaba sonando</h3>
+
+                <img src="#" alt="cover" title="Cover"
+                     class="img-responsive img-thumbnail center-block" id="cover-img"  width="100%" />
+
+                <ul class="list-group">
+                    <li class="list-group-item audio-info-element" data-info-field="type" data-label="Type: " ></li>
+                    <li class="list-group-item audio-info-element" data-info-field="audio_title" data-label="Title: " ></li>
+                    <li class="list-group-item audio-info-element" data-info-field="podcast_name" data-label="Podcast: " ></li>
+                </ul>
+
+            {% endblock %}
+            </div>
+
+            <hr class="visible-xs" />
+
+            <div class="col-md-4" >
+            {% block tweetform %}
+                <h3 class="text-center" >Twitter</h3>
+                <img class="img-responsive img-rounded center-block twitter-logo"
+                     src="{% static 'images/twitter-icon.png' %}"
+                     width="64px" />
+
+                <p class="twitter-reminder text-center">
+                    Recuerda, todo lo que envíes será publicado en la cuenta de
+                    <a href="https://twitter.com/Radio_Podcast"
+                       title="Twitter de Radio Podcastellano">Radio Podcastellano</a>.
+                </p>
+
+                <form action="#" method="POST" role="form" >
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <textarea name="tweet" id="tweet-content" class="form-control" maxlength="140"></textarea>
+                        <p class="help-block" id="chars">140</p>
+                        <div class="alert alert-success text-center" >
+                            <p>
+                                El tweet se ha enviado con éxito
+                            </p>
+                        </div>
+                        <div class="alert alert-danger text-center" >
+                            <p>
+                            </p>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <button id="twitter-submit"
+                                type="button"
+                                class="btn btn-info form-control center-block"
+                                role="form" >Tweet</button>
+                    </div>
+                </form>
+            {% endblock %}
+            </div>
+
+            <hr class="visible-xs" />
+
+            <div class="col-md-4" >
+            {% block reminder %}
+            <h3 class="text-center" >Finalizar el directo</h3>
+            <p>
+                Ahora <strong>estás en directo</strong>. Has pausado la reproducción automática de Radio Podcastellano.
+                Para salir del modo directo, clica sobre el botón. <strong>Cerrarás la sesión y la reproducción automáticamente
+                se restaurará</strong>. Además, dispones de una caja de texto donde puedes tuitear.
+                <h4 class="text-center" >Ten en cuenta</h4>
+                <dl>
+                    <dd>- La reproducción retomará su curso si y sólo si cierras sesión o sales del modo directo
+                        <strong>manualmente</strong>.</dd>
+                    <dd>- No podrá entrar otro grupo de podcasters hasta que salgas del modo live adecuadamente.</dd>
+                </dl>
+            </p>
+            <a class="btn btn-primary btn-block" role="button" href="{% url 'off' %}" >Salir del modo directo</a>
+            {% endblock %}
+            </div>
+        </div>
+        <div class="container" ><div class="row" >&nbsp;</div></div>
+    </div>
+</div>
+<script>
+    var TWEET_URL = "{% url 'tweet' %}";
+    var COVERS_URL = "{% static 'images/covers/' %}";
+    var PODCAST_API = "{% url 'podcast' %}";
+    var OFF_URL = "{% url 'off' %}";
+</script>
+<script src="{% static 'live/js/on.js' %}" ></script>
+{% endblock %}
