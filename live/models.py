@@ -1,7 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import User
-from podcastmanager.settings import LIVE_COVERS_FOLDER, DEFAULT_COVER_IMAGE
+from podcastmanager.settings import LIVE_COVERS_FOLDER, DEFAULT_COVER_IMAGE, COVERS_URL
 import os
+
 
 class Event(models.Model):
     user = models.ForeignKey(User, verbose_name=u'Podcaster emitiendo en directo')
@@ -24,3 +25,17 @@ class Event(models.Model):
             return os.path.basename(self.cover.name)
         else:
             return False
+
+    def thumbnail(self):
+        """
+        Not a fan of this
+        :return:
+        """
+        return u'<img src="/%s" title="%s" with="32" height="32" />' % (
+            os.path.join(COVERS_URL, self.get_cover()),
+            self.event_title
+        )
+    thumbnail.allow_tags = True
+
+    def __unicode__(self):
+        return '%s de, %s' % (self.event_title, self.artists)

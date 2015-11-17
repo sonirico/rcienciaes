@@ -77,19 +77,31 @@
 
             <div class="col-md-4" >
             {% block reminder %}
+
             <h3 class="text-center" >Finalizar el directo</h3>
+
             <p>
                 Ahora <strong>estás en directo</strong>. Has pausado la reproducción automática de Radio Podcastellano.
                 Para salir del modo directo, clica sobre el botón. <strong>Cerrarás la sesión y la reproducción automáticamente
                 se restaurará</strong>. Además, dispones de una caja de texto donde puedes tuitear.
-                <h4 class="text-center" >Ten en cuenta</h4>
+
+                <h4 class="text-center" >¡Importante!</h4>
+
                 <dl>
-                    <dd>- La reproducción retomará su curso si y sólo si cierras sesión o sales del modo directo
-                        <strong>manualmente</strong>.</dd>
+                    <dd>
+                        - La reproducción retomará su curso si y sólo si cierras sesión o sales del modo directo
+                        <strong>manualmente</strong>.
+                    </dd>
                     <dd>- No podrá entrar otro grupo de podcasters hasta que salgas del modo live adecuadamente.</dd>
+                    <dd>
+                        - Si recargas o cierras la <strong>pestaña</strong> o el <strong>navegador</strong>, también se terminará
+                        el directo.
+                    </dd>
                 </dl>
             </p>
+
             <a class="btn btn-primary btn-block" role="button" href="{% url 'off' %}" >Salir del modo directo</a>
+
             {% endblock %}
             </div>
         </div>

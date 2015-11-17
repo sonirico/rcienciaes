@@ -16,8 +16,10 @@ from playlist.models import PlayListManager
 import logging
 import os
 
-
+# Logger for logging
 logger = logging.getLogger(__name__)
+
+
 # Some useful mixins
 
 
@@ -158,7 +160,7 @@ class LiveModeOff(PodcasterOrAdminMembershipRequiredMixin, View):
             return HttpResponseRedirect(reverse_lazy('index'))
 
 
-class TweetView(FormView):
+class TweetView(PodcasterOrAdminMembershipRequiredMixin, FormView):
     form_class = TweetForm
 
     def post(self, request, *args, **kwargs):
