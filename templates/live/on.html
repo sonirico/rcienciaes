@@ -26,8 +26,7 @@
 
                 <ul class="list-group">
                     <li class="list-group-item audio-info-element" data-info-field="type" data-label="Type: " ></li>
-                    <li class="list-group-item audio-info-element" data-info-field="audio_title" data-label="Title: " ></li>
-                    <li class="list-group-item audio-info-element" data-info-field="podcast_name" data-label="Podcast: " ></li>
+                    <li class="list-group-item audio-info-element" data-info-field="title" data-label="Title: " ></li>
                 </ul>
 
             {% endblock %}
@@ -111,7 +110,7 @@
 <script>
     var TWEET_URL = "{% url 'tweet' %}";
     var COVERS_URL = "{% static 'images/covers/' %}";
-    var PODCAST_API = "{% url 'podcast' %}";
+    var PODCAST_API = "{% url 'current' %}";
     var OFF_URL = "{% url 'off' %}";
 </script>
 <script src="{% static 'live/js/on.js' %}" ></script>

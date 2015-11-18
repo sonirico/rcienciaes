@@ -225,17 +225,23 @@ def tweet_event(tweet_content='', cover_name=None):
 # Some helpers
 
 def pause_streaming():
-    pm = PlayListManager()
-    if pm.status().get('state') == 'play':
-        pm.pause()
-    pm.close()
+    try:
+        pm = PlayListManager()
+        if pm.status().get('state') == 'play':
+            pm.pause()
+        pm.close()
+    except Exception, e:
+        logger.info(e.message)
 
 
 def resume_streaming():
-    pm = PlayListManager()
-    if pm.status().get('state') == 'pause':
-        pm.play()
-    pm.close()
+    try:
+        pm = PlayListManager()
+        if pm.status().get('state') == 'pause':
+            pm.play()
+        pm.close()
+    except Exception, e:
+        logger.info(e.message)
 
 
 def last_event():
@@ -249,4 +255,5 @@ def is_anybody_online():
     try:
         return bool(Event.objects.latest('started_at').ended_at is None)
     except ObjectDoesNotExist, e:
+        logger.info(e.message)
         return False
