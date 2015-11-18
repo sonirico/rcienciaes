@@ -354,9 +354,11 @@ class PlayListManager(object):
         return self.client.status()
 
     def __load__(self, playlist='current'):
+        logger.info('Loading new playlist: %s' % playlist)
         self.client.load(playlist)
 
     def reset_playlist(self):
+        logger.info('Reseting playlist')
         self.client.clear()
         self.client.update()
         self.__load__()
@@ -366,16 +368,19 @@ class PlayListManager(object):
         if os.path.isfile(real_path):
             try:
                 self.client.add(file_name)
+                logger.info('Song added: %s' % file_name)
             except Exception, e:
-                pass
+                logger.exception(e.message)
 
     def close(self):
         self.client.close()
 
     def pause(self):
+        logger.info('Pausing streaming')
         self.client.pause()
 
     def play(self):
+        logger.info('Playing/Resuming streaming')
         self.client.repeat(1)
         self.client.play()
 
@@ -383,6 +388,7 @@ class PlayListManager(object):
         self.client.playid(song_id)
 
     def seek(self, song_id, time):
+        logger.info('Moving to song %s at time %s' % (song_id, time))
         self.client.seekid(song_id, time)
 
     def get_current_file(self):
