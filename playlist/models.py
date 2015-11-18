@@ -3,17 +3,24 @@
 from django.db import models
 from django.contrib.contenttypes.models import ContentType
 from django.utils import timezone
-
-from podcastmanager.settings import BASE_DIR, LIVE_COVERS_FOLDER, STATIC_URL, AUDIOS_URL, COVERS_URL, DEFAULT_COVER_IMAGE, REMOTE_COVERS_URI
+from django.db.models.signals import post_delete, post_save
 from django.core.exceptions import ObjectDoesNotExist
 from django.core import urlresolvers
-from polymorphic import PolymorphicModel
-from colorful.fields import RGBColorField
-import os
-import logging
 
-from django.db.models.signals import post_delete, post_save
+from polymorphic import PolymorphicModel
+
+from colorful.fields import RGBColorField
+
+from podcastmanager.settings import AUDIOS_URL, COVERS_URL, DEFAULT_COVER_IMAGE, REMOTE_COVERS_URI
+
+from mpc.models import MPDC
+
 from tools.filehandler import file_cleanup, calculate_duration
+
+
+import logging
+import os
+
 
 logger = logging.getLogger(__name__)
 
@@ -47,8 +54,8 @@ class PodcastCategory(Category):
         default=90)
 
     class Meta:
-        verbose_name = u'Categorías de Podcast'
-        verbose_name_plural = u'Categorías de Podcast'
+        verbose_name = u'Categories for Podcasts'
+        verbose_name_plural = verbose_name
 
 
 class PromoCategory(Category):
@@ -58,8 +65,8 @@ class PromoCategory(Category):
     days_to_expiration = models.PositiveIntegerField(verbose_name=u'How long make promos expire (days)', default=90)
 
     class Meta:
-        verbose_name = u'Categorías de Promos'
-        verbose_name_plural = u'Categorías de Promos'
+        verbose_name = u'Categories for Promos'
+        verbose_name_plural = verbose_name
 
 
 class Audio(PolymorphicModel, AdminBrowsableObject):
@@ -211,6 +218,10 @@ class Podcast(AdminBrowsableObject):
     def __unicode__(self):
         return self.name
 
+    class Meta:
+        verbose_name = u'Podcast'
+        verbose_name_plural = u'Podcasts'
+
 
 class Episode(Audio):
     uri = models.URLField(verbose_name=u'File internet location', null=True, blank=True)
@@ -306,8 +317,8 @@ class PlaylistHistory(AdminBrowsableObject):
     total_unique_listeners_count = models.PositiveIntegerField(default=0, verbose_name=u'Unique listeners count')
 
     class Meta:
-        verbose_name = u'Playlist History'
-        verbose_name_plural = verbose_name
+        verbose_name = u'Playlist history record'
+        verbose_name_plural = u'Playlist history records'
 
     def stop(self):
         self.finished = timezone.now()
@@ -326,9 +337,6 @@ post_save.connect(calculate_duration, sender=Episode)
 # Delete linked files, such as audios or covers
 post_delete.connect(file_cleanup, sender=Episode)
 post_delete.connect(file_cleanup, sender=Promotion)
-
-
-from mpc.models import MPDC
 
 
 # TODO: Add logger here
