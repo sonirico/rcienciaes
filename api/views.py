@@ -4,7 +4,7 @@ import json
 import logging
 
 from django.shortcuts import Http404
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.core.exceptions import ObjectDoesNotExist
 from mpc.models import MPDC
 from playlist.models import Episode, Podcast
@@ -281,3 +281,70 @@ class AudioListView(ListView):
         context = super(AudioListView, self).get_context_data(**kwargs)
         context['title'] = self.title
         return context
+
+
+
+from django.views.generic import TemplateView
+from playlist.models import PlayListManager
+
+class JSONResponseMixin(object):
+    """
+    A mixin that can be used to render a JSON response.
+    """
+    def render_to_json_response(self, context, **response_kwargs):
+        """
+        Returns a JSON response, transforming 'context' to make the payload.
+        """
+        return JsonResponse(
+            self.get_data(context),
+            **response_kwargs
+        )
+
+    def get_data(self, context):
+        """
+        Returns an object that will be serialized as JSON by json.dumps().
+        """
+        return context
+
+
+class PlaylistManagerView(TemplateView):
+    pm = None
+
+    def __init__(self, *args, **kwargs):
+        self.pm = PlayListManager()
+        if self.pm:
+            super(PlaylistManagerView, self).__init__(*args, **kwargs)
+        else:
+            raise Http404
+
+    def get(self, request, *args, **kwargs):
+        return super(PlaylistManagerView, self).get(
+            request, *args, **kwargs
+        )
+
+
+class ApiView(JSONResponseMixin, PlaylistManagerView):
+    data = {}
+
+    def render_to_response(self, context, **response_kwargs):
+        return self.render_to_json_response(context, **response_kwargs)
+
+
+class StatusView(ApiView):
+    """
+    Retrieves info about the status of the streaming.
+        live: boolean,
+        state: String [play|pause|stop]
+        total_time: Integer,
+        current_time: Integer,
+        song: Integer
+    """
+    def get_data(self, context):
+        main_status = self.pm.status()
+
+        self.data['live'] = is_anybody_online()
+        self.data['state'] = main_status.get('state')
+        if status != 'stop':
+            self.data['song'] = int(main_status.get('song'))
+            self.data['current_time'], self.data['total_time'] = [int(v) for v in main_status.get('time').split(':')]
+        return self.data

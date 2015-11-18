@@ -1,5 +1,4 @@
 from django.contrib.auth.decorators import login_required
-from django.views.generic import DetailView
 from django.views.generic.base import View, TemplateView
 from django.views.generic.edit import FormView, CreateView
 from django.http import JsonResponse, HttpResponseNotFound
