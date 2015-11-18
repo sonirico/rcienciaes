@@ -48,7 +48,7 @@ class PlaylistManagerView(TemplateView):
             self.pm = PlayListManager()
             super(PlaylistManagerView, self).__init__(*args, **kwargs)
         except Exception, e:
-            logger.exception(e.message)
+            logger.info(e.message)
             raise Http404
 
     def get(self, request, *args, **kwargs):
@@ -79,7 +79,7 @@ class StatsView(ApiView):
             del retriever
             return stats
         except Exception, e:
-            logger.exception(e.message)
+            logger.info(e.message)
             raise Http404
 
 
@@ -134,9 +134,9 @@ class LiveView(ApiView):
             return self.__event_data(event)
         except ObjectDoesNotExist, e:
             self.data['message'] = 'There have been no events so far'
-            logger.exception(e.message)
+            logger.info(e.message)
         except Exception, e:
-            logger.exception(e.message)
+            logger.info(e.message)
             self.data['message'] = 'Unexpected error'
         return self.data
 
@@ -176,11 +176,11 @@ class CurrentAudioView(ApiView):
         except ObjectDoesNotExist, e:
             del self.data
             self.data['message'] = 'It seems there is no info about the current audio'
-            logger.exception(e.message)
+            logger.info(e.message)
         except Exception, e:
             del self.data
             self.data['message'] = 'Unexpected error'
-            logger.exception(e.message)
+            logger.info(e.message)
         return self.data
 
 

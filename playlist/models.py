@@ -339,9 +339,6 @@ post_delete.connect(file_cleanup, sender=Episode)
 post_delete.connect(file_cleanup, sender=Promotion)
 
 
-# TODO: Add logger here
-
-
 class PlayListManager(object):
     old_audio = ''  # Formato [audio_03.mp3]
 
