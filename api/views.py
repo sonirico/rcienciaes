@@ -1,291 +1,24 @@
 # -*- coding: utf-8 -*-
-import os
-import json
-import logging
 
 from django.shortcuts import Http404
-from django.http import HttpResponse, JsonResponse
+from django.http import JsonResponse
 from django.core.exceptions import ObjectDoesNotExist
-from mpc.models import MPDC
-from playlist.models import Episode, Podcast
-from live.models import Event
-from live.views import is_anybody_online
-from podcastmanager.settings import AUDIOS_URL, DEFAULT_COVER_IMAGE
-
-# Create your views here.
-logger = logging.getLogger(__name__)
-
-def index(request):
-    return HttpResponse('ok')
-
-
-def live(request):
-    data = {}
-    if bool(is_anybody_online()):
-        live_entry = Event.objects.latest('started_at')
-        data['live'] = 'on'
-        data['artist'] = live_entry.artist
-        data['event_title'] = live_entry.event_title
-        data['start_date'] = live_entry.start_date.strftime("%Y-%m-%d %H:%M:%S")
-        data['cover_path'] = live_entry.get_image_file()
-    else:
-        data['live'] = 'off'
-    return HttpResponse(json.dumps(data))
-
-
-def current(request):
-    mpdc = MPDC()
-    mpdc.connect()
-    current_song = mpdc.client.currentsong()
-    mpdc.client.close()
-    if current_song:
-        audio = get_audio_from_file(current_song.get('file'))
-        if not audio:
-            raise Http404
-        current_song['cover'] = audio.get_cover()
-        response = json.dumps(current_song)
-        return HttpResponse(response, content_type='application/json')
-    else:
-        raise Http404
-
-
-def status(request):
-    mpdc = MPDC()
-    mpdc.connect()
-    response = json.dumps(mpdc.client.status())
-    mpdc.client.close()
-    return HttpResponse(response, content_type='application/json')
-
-
-def playlistinfo(request):
-    mpdc = MPDC()
-    mpdc.connect()
-    current_status = mpdc.client.status()
-    mpd_playlist = mpdc.client.playlistinfo()
-    mpdc.client.close()
-    if mpd_playlist:  # Empty == False
-        new_list = []
-        for entry in mpd_playlist:
-            # Obtenemos el link de la cover
-            audio = get_audio_from_file(entry['file'])
-            cover_url = audio.get_cover()
-            entry['cover'] = str(cover_url)
-            new_list.append(entry)
-        return HttpResponse(json.dumps(new_list))
-    else:
-        raise Http404
-
-
-def get_song_by_id(request, song_id):
-    mpdc = MPDC()
-    mpdc.connect()
-    found = False
-    song = None
-    for entry in mpdc.client.playlistinfo():
-        if entry['id'] == song_id:
-            found = True
-            song = entry
-            break
-    if found:
-        audio = get_audio_from_file(song['file'])
-        if not audio:
-            raise Http404
-        song['cover'] = audio.get_cover()
-        response = json.dumps(song)
-    else:
-        response = 'Audio whose id = %s does not exist ' % song_id
-    mpdc.client.close()
-    return HttpResponse(response)
-
-
-def get_song_by_pos(request, song_pos):
-    mpdc = MPDC()
-    mpdc.connect()
-    found = False
-    song = None
-    for entry in mpdc.client.playlistinfo():
-        if entry['pos'] == song_pos:
-            found = True
-            song = entry
-            break
-    if found:
-        audio = get_audio_from_file(song['file'])
-        if not audio:
-            raise Http404
-        song['cover'] = audio.get_cover()
-        response = json.dumps(song)
-    else:
-        response = 'Audio whose id = %s does not exist ' % song_pos
-    mpdc.client.close()
-    return HttpResponse(response)
-
-
-def get_audio_from_file(filename=None):
-    if filename is not None:
-        try:
-            audio = Audio.objects.get(filename=os.path.join(AUDIOS_URL, filename))
-            return audio
-        except ObjectDoesNotExist, e:
-            logger.exception(e.message)
-            return False
-    return False
-
+from django.views.generic import TemplateView
 
 from statistics.models import IceCastRetriever
 
+from live.models import Event
+from live.views import is_anybody_online
 
-def stats(request):
-    try:
-        retriever = IceCastRetriever()
-        stats = retriever.raw_stats()
-        del retriever
-        return HttpResponse(json.dumps(stats), content_type='application/json')
-    except Exception, e:
-        raise Http404
+from playlist.models import PlayListManager, Audio
+from podcastmanager.settings import AUDIOS_URL
 
-# Sobre el podcast del episodio que está sonando, devuelve:
-# Nombre del podcast, nombre del episodio , imagen del episodio, ...
+import logging
+import os
 
 
-def podcast(request):
-    try:
-        mpdc = MPDC()
-        mpdc.connect()
-        current_file = mpdc.client.currentsong().get('file')
-        audio = get_audio_from_file(current_file)
-        if not audio:
-            raise Http404
-        #current_podcast = current_episode.podcast
-        data = {}
-        data_type = audio.get_type()
-        data['type'] = data_type
-        if data_type == 'episode':
-            data['podcast_name'] = audio.podcast.name
-            data['podcast_description'] = audio.podcast.description
-            data['podcast_web'] = audio.podcast.website
-        data['audio_cover'] = audio.get_cover()
-        data['audio_title'] = audio.title
-        return HttpResponse(json.dumps(data), content_type='application/json')
-    except:
-        raise Http404
+logger = logging.getLogger(__name__)
 
-
-# Información sobre el siguiente podcast que sonara
-# Nombre de episodio y podcast e imagen
-def next_podcast(request):
-    try:
-        mpdc = MPDC()
-        mpdc.connect()
-        next_song_pos = mpdc.client.status().get('nextsong')
-        next_file = mpdc.client.playlistinfo()[int(next_song_pos)].get('file')
-        next_episode = Episode.objects.filter(_filename=next_file)[0]
-        nextpodcast = next_episode.podcast
-        data = {}
-        data['podcast_name'] = nextpodcast.nombre
-        data['podcast_image'] = next_episode.get_image_filename()
-        data['episode_title'] = next_episode.titulo
-        return HttpResponse(json.dumps(data))
-    except:
-        return Http404()
-
-from django.contrib.contenttypes.models import ContentType
-from playlist.models import PlayListManager
-
-def playlist(request):
-    pm = PlayListManager()
-    data = {}
-    rows = []
-    files = pm.get_files_in_playlist(folder=AUDIOS_URL)
-    audios = Audio.objects.filter(filename__in=files)
-    pos = 0
-    for audio in audios:
-        # Episode or audio
-        data_pod = {}
-        audio_type = audio.get_type()
-        if audio_type == 'episode':
-            data_pod['podcast_name'] = audio.podcast.name
-        elif audio_type == 'promotion':
-            data_pod['expiration'] = str(audio.expiration)
-            data_pod['uploaded'] = str(audio.uploaded)
-            data_pod['tweet'] = audio.tweet
-        # Common attributes
-        data_pod['pos'] = pos
-        #data_pod['podcast_image'] = episode.get_image_filename()
-        data_pod['audio_title'] = audio.title
-        data_pod['audio_type'] = audio_type
-        rows.append(data_pod)
-        pos += 1
-    data['rows'] = rows
-    data['total'] = audios.count()
-    data['current'] = 1
-    data['rowCount'] = 4
-    return HttpResponse(json.dumps(data), content_type='application/json')
-
-# Playlist del día: información para visualizar la playlist del podcast del día (nombre, episodio, imagen)
-
-
-def podcast_by_id(request, podcast_id):
-    try:
-        pod = Podcast.objects.get(pk=podcast_id)
-        data = {}
-        data['id'] = pod.id
-        data['name'] = pod.nombre
-        data['feed'] = pod.rssfeed
-        data['web'] = pod.web
-        data['categoria'] = pod.categoria.nombre
-        data['active'] = pod.activo
-        data['image'] = DEFAULT_COVER_IMAGE
-        try:
-            data['active_episode_id'] = pod.active_episode.id
-            data['image'] = pod.active_episode.get_image_filename()
-            data_ep = {}
-            i = 0
-            for e in Episode.objects.filter(podcast=pod):
-                data_ep[i] = dict(episode_by_id(e))
-                i += 1
-            data['episodes'] = data_ep
-        except:
-            pass
-        data['description'] = pod.descripcion
-        print data
-        return HttpResponse(json.dumps(data))
-    except:
-        return Http404()
-
-
-# Información completa de un podcast: dado un podcast (del que tenga su id), obtener toda
-# la información posible del mismo, nombre, imagen, episodios sonando en la radio, etc.
-
-
-def episode_by_id(e):
-    data = {}
-    data['id'] = e.id
-    data['titulo'] = e.titulo
-    data['url'] = e.url
-    data['date_published'] = str(e._date_published)
-    data['date_downloaded'] = str(e._date_downloaded)
-    return data
-
-
-
-from django.views.generic import ListView
-from playlist.models import Audio
-from django.http import JsonResponse
-
-
-class AudioListView(ListView):
-    title = 'Audio List'
-    queryset = Audio.objects.order_by('-title')
-
-    def get_context_data(self, **kwargs):
-        context = super(AudioListView, self).get_context_data(**kwargs)
-        context['title'] = self.title
-        return context
-
-
-
-from django.views.generic import TemplateView
-from playlist.models import PlayListManager
 
 class JSONResponseMixin(object):
     """
@@ -311,10 +44,10 @@ class PlaylistManagerView(TemplateView):
     pm = None
 
     def __init__(self, *args, **kwargs):
-        self.pm = PlayListManager()
-        if self.pm:
+        try:
+            self.pm = PlayListManager()
             super(PlaylistManagerView, self).__init__(*args, **kwargs)
-        else:
+        except:
             raise Http404
 
     def get(self, request, *args, **kwargs):
@@ -326,8 +59,26 @@ class PlaylistManagerView(TemplateView):
 class ApiView(JSONResponseMixin, PlaylistManagerView):
     data = {}
 
+    def __init__(self, *args, **kwargs):
+        super(ApiView, self).__init__(*args, **kwargs)
+        self.data = {}
+
     def render_to_response(self, context, **response_kwargs):
         return self.render_to_json_response(context, **response_kwargs)
+
+
+class StatsView(ApiView):
+    """
+    Retrieves info about the current number of listeners
+    """
+    def get_data(self, context):
+        try:
+            retriever = IceCastRetriever()
+            stats = retriever.raw_stats()
+            del retriever
+            return stats
+        except Exception, e:
+            raise Http404
 
 
 class StatusView(ApiView):
@@ -339,12 +90,177 @@ class StatusView(ApiView):
         current_time: Integer,
         song: Integer
     """
-    def get_data(self, context):
+    def __get_status(self):
         main_status = self.pm.status()
-
         self.data['live'] = is_anybody_online()
         self.data['state'] = main_status.get('state')
-        if status != 'stop':
+        if main_status.get('state') != 'stop':
             self.data['song'] = int(main_status.get('song'))
             self.data['current_time'], self.data['total_time'] = [int(v) for v in main_status.get('time').split(':')]
         return self.data
+
+    def get_data(self, context):
+        try:
+            return self.__get_status()
+        except Exception, e:
+            self.data['message'] = e.message
+        return self.data
+
+
+class LiveView(ApiView):
+    """
+    Retrieves info about the current live event
+        title :  String
+        artists : String
+        started_at : DateTime
+        greet : String
+        cover : String
+    """
+    def __event_data(self, event):
+        self.data['title'] = event.event_title
+        self.data['artists'] = event.artists
+        self.data['started_at'] = str(event.started_at)
+        self.data['greet'] = event.first_tweet
+        self.data['cover'] = event.get_cover()
+        if event.ended_at:
+            self.data['ended_at'] = str(event.ended_at)
+        return self.data
+
+    def get_data(self, context):
+        try:
+            event = Event.objects.latest('started_at')
+            return self.__event_data(event)
+        except ObjectDoesNotExist, e:
+            self.data['message'] = 'There have been no events so far'
+        except Exception:
+            self.data['message'] = 'Unexpected error'
+        return self.data
+
+
+class CurrentAudioFromMetadataView(ApiView):
+    """
+    Retrieves info about the current file from its metadata.
+    """
+    allowed_fields = ['album', 'title', 'genre', 'artist', 'time']
+
+    def get_data(self, context):
+        if self.pm.status().get('state') != 'stop':
+            metadata = self.pm.get_current_song()
+            a_f = self.allowed_fields[:]
+            for k in metadata.keys():
+                if k not in a_f:
+                    del metadata[k]
+            return metadata
+        else:
+            self.data['message'] = 'Streaming is currently stopped'
+            return self.data
+
+
+class CurrentAudioView(ApiView):
+    """
+    Retrieves info about the current audio file, from database
+    """
+    def get_data(self, context):
+        try:
+            file_name = self.pm.get_current_file()
+            if not file_name:
+                self.data['message'] = 'Streaming is currently stopped'
+                return self.data
+            else:
+                audio = Audio.objects.get(filename=(os.path.join(AUDIOS_URL, file_name)))
+                self.data = audio_serializer(audio)
+        except ObjectDoesNotExist:
+            del self.data
+            self.data['message'] = 'It seems there is no info about the current audio'
+        except Exception:
+            del self.data
+            self.data['message'] = 'Unexpected error'
+        return self.data
+
+
+class NextView(ApiView):
+    """
+    Retrieves info about the next audio. If <how_many> param is sent, the same amount of
+    audios will be provided.
+    """
+    def get_data(self, context):
+        if self.pm.status().get('state', False) != 'stop':
+            next_song_pos = self.pm.status().get('nextsong')
+            if self.kwargs.get('how_many', False):  # There is an amount
+                amount = int(self.kwargs.get('how_many'))
+                next_file = self.pm.get_playlist_info()[int(next_song_pos)].get('file')
+                all_files = self.pm.get_files_in_playlist()
+                all_files_copy = all_files[:]
+                for f in all_files:
+                    if f == next_file:
+                        break
+                    else:
+                        all_files_copy.remove(f)
+                search_files = [ AUDIOS_URL + filename for filename in all_files_copy[:amount] ]
+                try:
+                    del self.data
+                    audio_list = []
+                    for audio in Audio.objects.filter(filename__in=search_files):
+                        audio_list.append(audio_serializer(audio))
+                    self.data['playlist'] = audio_list
+                    return self.data
+                except Exception:
+                    return {'message': 'Unable to see the next files'}
+            else:
+                next_file = self.pm.get_playlist_info()[int(next_song_pos)].get('file')
+                try:
+                    audio = Audio.objects.get(filename=(os.path.join(AUDIOS_URL, next_file)))
+                    self.data = audio_serializer(audio)
+                except ObjectDoesNotExist:
+                    self.data['message'] = 'There are no records for the next audio'
+            return self.data
+        else:
+            return {'message': 'Streaming seems to be stooped'}
+
+
+class PlaylistView(ApiView):
+    """
+    Sends info about the entire playlist
+    """
+    def get_data(self, context):
+        if self.pm.status().get('state', False) != 'stop':
+            all_files_in_playlist = self.pm.get_files_in_playlist(AUDIOS_URL)
+            self.data['playlist'] = []
+            total_count = 0
+            for f in all_files_in_playlist:
+                try:
+                    self.data['playlist'].append(audio_serializer(Audio.objects.get(filename=f)))
+                    total_count += 1
+                except ObjectDoesNotExist:
+                    pass
+            self.data['total_count'] = total_count
+            return self.data
+        else:
+            return {'message': 'Streaming seems to be stooped'}
+
+
+def audio_serializer(audio=None):
+    """
+    Audio info under customized keys
+    :param audio: Audio Model Type
+    :return: dict
+    """
+    if audio is None:
+        return {}
+    else:
+        data = {}
+        data['title'] = audio.title
+        data['duration'] = audio.duration
+        data['cover'] = audio.get_cover()
+        data['type'] = audio_type = audio.get_type()
+        if audio_type == 'episode':
+            podcast = {}
+            podcast['name'] = audio.podcast.name
+            podcast['description'] = audio.podcast.description
+            podcast['website'] = audio.podcast.website
+            podcast['twitter'] = audio.podcast.twitter
+            data['podcast'] = podcast
+        return data
+
+
+

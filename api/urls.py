@@ -1,21 +1,13 @@
 from django.conf.urls import url
-from api import views
-from api.views import AudioListView
 from .views import *
 
 urlpatterns = [
-    url(r'current/$', views.current, name='current'),
-    url(r'live/$', views.live, name='live'),
-    url(r'stats/$', views.stats, name='stats'),
-    #url(r'status/$', views.status, name='status'),
-    url(r'playlistinfo/$', views.playlistinfo),
-    url(r'song_by_pos/(?P<song_pos>\d+)$', views.get_song_by_pos),
-    url(r'song_by_id/(?P<song_id>\d+)$', views.get_song_by_id),
-    url(r'podcast/$', views.podcast, name='podcast'),
-    url(r'next/$', views.next_podcast),
-    url(r'playlist/$', views.playlist),
-    url(r'podcastbyid/(?P<podcast_id>\d+)/$', views.podcast_by_id),
-    url(r'audios/', AudioListView.as_view()),
-
+    url(r'stats/$', StatsView.as_view(), name='stats'),
     url(r'status/$', StatusView.as_view(), name='status'),
+    url(r'live/$', LiveView.as_view(), name='live'),
+    url(r'current/$', CurrentAudioView.as_view(), name='current'),
+    url(r'current_from_metadata/$', CurrentAudioFromMetadataView.as_view(), name='current-metadata'),
+    url(r'next/(?P<how_many>\d+)/$', NextView.as_view(), name='next'),
+    url(r'next/$', NextView.as_view(), name='next'),
+    url(r'playlist/$', PlaylistView.as_view(), name='playlist'),
 ]

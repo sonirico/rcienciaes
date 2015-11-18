@@ -331,7 +331,7 @@ post_delete.connect(file_cleanup, sender=Promotion)
 from mpc.models import MPDC
 
 
-# TODO FINISH THIS
+# TODO: Add logger here
 
 
 class PlayListManager(object):
@@ -346,11 +346,9 @@ class PlayListManager(object):
         return self.client.status()
 
     def __load__(self, playlist='current'):
-        print 'Cargando %s' % playlist
         self.client.load(playlist)
 
     def reset_playlist(self):
-        print 'Reseteando playlist'
         self.client.clear()
         self.client.update()
         self.__load__()
@@ -378,6 +376,11 @@ class PlayListManager(object):
 
     def seek(self, song_id, time):
         self.client.seekid(song_id, time)
+
+    def get_current_file(self):
+        if self.status().get('state') != 'stop':
+            return self.get_current_song().get('file', False)
+        return False
 
     def get_current_song(self):
         return self.client.currentsong()
