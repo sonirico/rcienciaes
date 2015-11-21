@@ -69,7 +69,7 @@ def calculate_duration(sender, instance, *args, **kwargs):
 
 
 def get_audio_duration(filename):
-    path = filename.name
+    path = str(filename)
     if os.path.isfile(path):
         ext = path.lower().split('.')[-1]
         audio = None

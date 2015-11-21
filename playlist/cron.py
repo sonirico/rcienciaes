@@ -19,6 +19,7 @@ from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
+pm = PlayListManager()
 
 @kronos.register('0 4 * * *')
 def download(from_=0, to=0):
@@ -34,7 +35,7 @@ def update():
 @kronos.register('* * * * *')
 def check_streaming():
     if not is_anybody_online():
-        pm = PlayListManager()
+        global pm
         if pm.status().get('state') != 'play':
             pm.play()
         pm.close()
@@ -74,7 +75,7 @@ def clean_old_data():
 
 @kronos.register('* * * * *')
 def check_new_audio():
-    pm = PlayListManager()
+    global pm
     if pm:
         try:
             last_entry = PlaylistHistory.objects.latest('started')

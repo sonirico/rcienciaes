@@ -11,7 +11,7 @@ class Event(models.Model):
     first_tweet = models.CharField(max_length=140, verbose_name=u'Tweet content', null=True, blank=True)
     cover = models.ImageField(null=True, blank=True, upload_to=LIVE_COVERS_FOLDER, default=DEFAULT_COVER_IMAGE)
     started_at = models.DateTimeField(auto_now_add=True, auto_now=False, verbose_name=u'Empezo a emitir')
-    ended_at = models.DateTimeField(null=True, verbose_name=u'Termino de emitir')
+    ended_at = models.DateTimeField(null=True, verbose_name=u'Termino de emitir', blank=True)
 
     class Meta:
         verbose_name = u'Live entries'
@@ -32,7 +32,7 @@ class Event(models.Model):
         :return:
         """
         return u'<img src="/%s" title="%s" with="32" height="32" />' % (
-            os.path.join(COVERS_URL, self.get_cover()),
+            os.path.join(LIVE_COVERS_FOLDER, self.get_cover()),
             self.event_title
         )
     thumbnail.allow_tags = True

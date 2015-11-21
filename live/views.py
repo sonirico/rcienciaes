@@ -255,5 +255,4 @@ def is_anybody_online():
     try:
         return bool(Event.objects.latest('started_at').ended_at is None)
     except ObjectDoesNotExist, e:
-        logger.info(e.message)
         return False
