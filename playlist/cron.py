@@ -20,11 +20,13 @@ from django.utils import timezone
 logger = logging.getLogger(__name__)
 
 pm = PlayListManager()
+dm = DownloadManager()
+
 
 @kronos.register('0 4 * * *')
 def download(from_=0, to=0):
-    manager = DownloadManager()
-    manager.download(from_, to)
+    global dm
+    dm.download(from_, to)
 
 
 @kronos.register('0 0 * * *')
@@ -103,7 +105,7 @@ def check_new_audio():
     pm.close()
 
 
-@kronos.register('0 0 * * *')
+@kronos.register('0 0 1 * *')
 def podcast_feels_old():
     for p in Podcast.objects.filter(active=True):
         try:

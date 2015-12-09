@@ -8,8 +8,9 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError
 from django.http import HttpResponse, HttpResponseRedirect
 from django.contrib.auth.models import Group, User
+from django.template import Template, Context
 
-from playlist.models import Podcast
+from playlist.models import Promotion, PromoCategory, Podcast, PlayListManager
 from podcastmanager.settings import TWITTER_OAUTH, TWEET_TEMPLATE_PATH, COVERS_URL, DEFAULT_COVER_IMAGE, BASE_DIR
 from tools.normalize import normalize
 from twitter import *
@@ -88,7 +89,6 @@ def import_from_opml(opml_file='podcasts.opml'):
 
 # Crea una lista de cero. Borra las canciones que hubiera antes.
 # En otras palabras, se reinicia la reproduccion
-from playlist.models import PlayListManager
 
 
 def reset_playlist(request=None):
@@ -182,16 +182,7 @@ def update_playlist(request):
     logger.info('Playlist updated successfully ')
     return HttpResponseRedirect('/player/')
 
-"""
-from playlist.models import Audio
 
-def index(request):
-    a = Audio.objects.all()[7]
-#    return HttpResponse(render_to_string(TWEET_TEMPLATE_PATH, {'audio':a}))
-    return HttpResponse(str(tweet(a)))
-"""
-
-from django.template import Template, Context
 
 def tweet(audio):
     if audio is None:
@@ -235,9 +226,6 @@ def tweet(audio):
         logger.info('Failed to send tweet: "%s"' % tweet)
         logger.exception(e.message)
         return False
-
-
-from playlist.models import Promotion, PromoCategory
 
 
 def get_promo_list_by_time_interval():

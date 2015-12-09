@@ -46,8 +46,10 @@ episode_template = {
 class DownloadManager(object):
     def __init__(self):
         self.episode = episode_template
+        self.busy = False
 
     def download(self, from_=0, to=0):
+        self.busy = True
         all_active_podcasts = Podcast.objects.filter(active=True)
         if from_ == 0 and to == 0:
             to = all_active_podcasts.count() - 1
@@ -87,6 +89,7 @@ class DownloadManager(object):
                 del episode_item  # This line should be reached
         # Finally, playlist should be updated
         update_playlist(None)
+        self.busy = False
 
     def parse_feed(self, episode_item, rss_url):
         """
@@ -112,7 +115,10 @@ class DownloadManager(object):
                     for last_enclosure in last_entry.enclosures:
                         if hasattr(last_enclosure, 'type'):
                             episode_item['title'] = last_entry['title']
-                            episode_item['published'] = format_time(last_entry['published_parsed'])
+                            if hasattr(last_entry, 'published_parsed'):
+                                episode_item['published'] = format_time(last_entry['published_parsed'])
+                            else:
+                                episode_item['published'] = None
                             episode_item['uri'] = last_enclosure['href']
                             episode_item['filename'] = os.path.basename(last_enclosure['href'])
                             episode_item['filename'] = create_file_name(episode_item)
