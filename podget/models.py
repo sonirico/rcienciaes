@@ -48,6 +48,9 @@ class DownloadManager(object):
         self.episode = episode_template
         self.busy = False
 
+    def is_busy(self):
+        return bool(self.busy)
+
     def download(self, from_=0, to=0):
         self.busy = True
         all_active_podcasts = Podcast.objects.filter(active=True)

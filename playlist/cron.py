@@ -26,7 +26,8 @@ dm = DownloadManager()
 @kronos.register('0 4 * * *')
 def download(from_=0, to=0):
     global dm
-    dm.download(from_, to)
+    if not dm.is_busy():
+        dm.download(from_, to)
 
 
 @kronos.register('0 0 * * *')
