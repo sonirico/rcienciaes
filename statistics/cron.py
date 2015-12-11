@@ -10,9 +10,11 @@ from hashlib import md5
 logger = logging.getLogger(__name__)
 
 
+retriever = IcecastListenersRetriever()
+
 @kronos.register('* * * * *')
 def count_unique_listeners():
-    retriever = IcecastListenersRetriever()
+    global retriever
     listeners = retriever.listeners()  # Obtains currently connected people
     if len(listeners) < 1:
         return

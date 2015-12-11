@@ -36,7 +36,7 @@ def make_cover(audio):
     if os.path.isfile(path):
         try:
             audio_file = File(path)
-            image_content = audio_file.tags['APIC:'].data
+            image_content = audio_file.tags.get('APIC:', False).data
             if image_content is not None and len(image_content) > 0:
                 cover_name = create_cover_name(audio)
                 audio.cover.name = cover_name
@@ -48,7 +48,7 @@ def make_cover(audio):
                     cover.close()
                     audio.save()
         except Exception, e:
-            logger.exception(e.message)
+            logger.info(e.message)
     else:
         print('This audio has no audio file. Probably it is not active either.')
 

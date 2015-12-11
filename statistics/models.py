@@ -52,6 +52,7 @@ class IceCastRetriever(object):
         try:
             self.parser = ET.fromstring(req.text)
             self.fields = fields.copy()
+            req.close()
         except:
             raise IcecastError("Error parsing xml")
 
