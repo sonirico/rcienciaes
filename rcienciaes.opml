@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<opml version="1.0">
+<head>
+	<title>Canales de iTunes suscritos</title>
+	<dateCreated>Mon, 18 Jan 2016 20:13:28 GMT</dateCreated>
+	<dateModified>Mon, 18 Jan 2016 20:13:28 GMT</dateModified>
+</head>
+<body>
+	<outline text="Hablando con Científicos - Cienciaes.com" type="rss" xmlUrl="http://feeds.feedburner.com/HablandoConCientficos" htmlUrl="http://cienciaes.com/entrevistas/" />
+	<outline text="Ciencia y genios - Cienciaes.com" type="rss" xmlUrl="http://feeds.feedburner.com/GeniosDeLaCiencia" htmlUrl="http://cienciaes.com/biografias/" />
+	<outline text="Vanguardia de la Ciencia - Cienciaes.com" type="rss" xmlUrl="http://feeds.feedburner.com/cienciaes/VanguardiadelaCiencia" htmlUrl="http://cienciaes.com/vanguardia/" />
+	<outline text="El Neutrino - Cienciaes.com" type="rss" xmlUrl="http://feeds.feedburner.com/ElNeutrinoCienciaES" htmlUrl="http://cienciaes.com/neutrino/" />
+	<outline text="Ciencia EXtrema - Cienciaes.com" type="rss" xmlUrl="http://feeds.feedburner.com/CienciaEXtrema" htmlUrl="http://cienciaes.com/extrema/" />
+	<outline text="Zoo de fósiles - Cienciaes.com" type="rss" xmlUrl="http://feeds.feedburner.com/ZooDeFosiles" htmlUrl="http://cienciaes.com/fosiles/" />
+	<outline text="Océanos de Ciencia - Cienciaes.com" type="rss" xmlUrl="http://feeds.feedburner.com/OcanosDeCiencia" htmlUrl="http://cienciaes.com/oceanos/" />
+	<outline text="Ulises y la Ciencia - Cienciaes.com" type="rss" xmlUrl="http://feeds.feedburner.com/Ulisesylaciencia" htmlUrl="http://cienciaes.com/ulises/" />
+	<outline text="Quilo de Ciencia - Cienciaes.com" type="rss" xmlUrl="http://feeds.feedburner.com/QuiloDeCiencia" htmlUrl="http://cienciaes.com/quilociencia/" />
+	<outline text="Ciencia Nuestra de cada Día - Cienciaes.com" type="rss" xmlUrl="http://feeds.feedburner.com/CienciaNuestra" htmlUrl="http://cienciaes.com/ciencianuestra/" />
+	<outline text="Seis patas tiene la vida - Cienciaes.com" type="rss" xmlUrl="http://feeds.feedburner.com/SeisPatasTieneLaVida" htmlUrl="http://cienciaes.com/seispatas/" />
+	<outline text="La Buhardilla 2.0" type="rss" xmlUrl="http://feeds2.feedburner.com/buhardillapodcast" htmlUrl="http://www.ivoox.com/podcast-buhardilla-2-0_sq_f12186_1.html" />
+	<outline text="A Través del Universo" type="rss" xmlUrl="http://feeds.feedburner.com/ATravesDelUniverso" htmlUrl="http://www.entremaqueros.com/bitacoras/memoria" />
+	<outline text="El Universo en un Gin-tonic de Pepino" type="rss" xmlUrl="http://universogtp.com/feed/podcast/" htmlUrl="http://universogtp.com" />
+	<outline text="GeoCastAway | GeoNáufragos" type="rss" xmlUrl="http://feeds.feedburner.com/geocastawaypodcast" htmlUrl="http://geocastaway.com/" />
+	<outline text="Universo Paralelo" type="rss" xmlUrl="http://dc588.4shared.com/download/bIx4mnzp/RSS-Universo-Paralelo.xml" htmlUrl="http://www.bloguniversoparalelo.blogspot.com" />
+	<outline text="Podcast La Aldea Irreductible" type="rss" xmlUrl="http://feeds2.feedburner.com/PodcastLaAldeaIrreductible" htmlUrl="http://podcast-irreductible.blogspot.com/" />
+	<outline text="El Cinturón de Orión (nuevas emisiones)" type="rss" xmlUrl="http://www.ivoox.com/feed_fg_f116148_filtro_1.xml" htmlUrl="http://www.ivoox.com/podcast-cinturon-orion-nuevas-emisiones_sq_f116148_1.html" />
+	<outline text="Cierta Ciencia - Cienciaes.com" type="rss" xmlUrl="http://feeds.feedburner.com/CiertaCienciaCienciaES" htmlUrl="http://cienciaes.com/ciertaciencia/" />
+	<outline text="Feedback Ciencia" type="rss" xmlUrl="http://www.ivoox.com/feedback-ciencia_fg_f111686_filtro_1.xml" htmlUrl="http://www.ivoox.com/podcast-feedback-ciencia_sq_f111686_1.html" />
+	<outline text="Podcast Catástrofe Ultravioleta" type="rss" xmlUrl="http://www.ivoox.com/podcast-catastrofe-ultravioleta_fg_f1107209_filtro_1.xml" htmlUrl="http://www.ivoox.com/podcast-podcast-catastrofe-ultravioleta_sq_f1107209_1.html" />
+	<outline text="Coffee Break: Señal y Ruido" type="rss" xmlUrl="http://www.ivoox.com/feed_fg_f1172891_filtro_1.xml" htmlUrl="http://www.ivoox.com/podcast-coffee-break-senal-ruido_sq_f1172891_1.html" />
+</body>
+</opml>

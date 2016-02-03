@@ -1,7 +1,7 @@
 amqp==1.4.6
 anyjson==0.3.3
 billiard==3.3.0.20
-celery==3.1.18
+#celery==3.1.18
 Django==1.8.2
 django-chartjs==1.0
 django-colorful==1.1.0
@@ -9,7 +9,7 @@ django-common-helpers==0.7.0
 django-filter==0.10.0
 django-grappelli==2.6.5
 django-polymorphic==0.7.1
-feedparser==5.2.0
+feedparser==5.2.1
 kombu==3.0.26
 lxml==3.4.4
 Markdown==2.6.2
@@ -17,7 +17,7 @@ mutagen==1.25.1
 Pillow==2.8.2
 pycparser==2.7
 pycrypto==2.6
-pycurl==7.19.0
+#pycurl==7.19.0
 python-dateutil==2.4.2
 python-mpd2==0.5.4
 pytz==2015.4

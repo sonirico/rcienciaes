@@ -7,6 +7,8 @@ from django.db.models.signals import post_delete, post_save
 from django.core.exceptions import ObjectDoesNotExist
 from django.core import urlresolvers
 
+from random import shuffle
+
 from polymorphic import PolymorphicModel
 
 from colorful.fields import RGBColorField
@@ -214,6 +216,19 @@ class Podcast(AdminBrowsableObject):
 
     def get_max_duration(self):
         return self.category.max_duration
+
+    def get_next_episode(self):
+        """
+        :return: Next episode object to be played. Between the less played, we have to choose randomly
+        """
+        episodes = self.episode_set.all()
+        l = [e.times_played for e in episodes]
+        if len(l) > 0:
+            episode_list = list(episodes.filter(times_played=min(l)))
+            shuffle(episode_list)
+            return episode_list[0]
+        else:
+            return False
 
     def __unicode__(self):
         return self.name

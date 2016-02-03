@@ -30,7 +30,7 @@ def download(from_=0, to=0):
         dm.download(from_, to)
 
 
-@kronos.register('0 0 * * *')
+@kronos.register('* 0/6 * * *')
 def update():
     update_playlist(None)
 
@@ -86,7 +86,13 @@ def check_new_audio():
             if last_audio_file is not False:
                 current_song = pm.get_current_song().get('file')
                 if last_audio_file != current_song:
+                    # There is new audio
                     last_entry.stop()
+                    # Set the next episode just in case the type of the current audio is "episode"
+                    if last_entry.audio.get_type() == 'episode':
+                        podcast = last_entry.audio.podcast
+                        podcast.active_episode = podcast.get_next_episode()
+                        podcast.save()
                     try:
                         current_audio = Audio.objects.get(filename=os.path.join(AUDIOS_URL, current_song))
                         current_audio.play()
@@ -103,7 +109,6 @@ def check_new_audio():
                     audio.play()
                 except ObjectDoesNotExist, e:
                     logger.error('There is a file in the playlist which no associated audio recorded')
-    pm.close()
 
 
 @kronos.register('0 0 1 * *')
@@ -122,3 +127,4 @@ def podcast_feels_old():
             logger.info('Marked as inactive: %s' % p.name)
             p.active = False
             p.save()
+

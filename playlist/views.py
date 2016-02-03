@@ -44,7 +44,7 @@ def create_podcaster(podcast_nombre=''):
         logger.info('Unable to create new podcaster. Podcasters group does not exist.')
 
 
-def import_from_opml(opml_file='podcasts.opml'):
+def import_from_opml(opml_file='rcienciaes.opml'):
     global logger
     if os.path.isfile(opml_file):
         outline = opml.parse(opml_file)
@@ -78,7 +78,7 @@ def import_from_opml(opml_file='podcasts.opml'):
                     website=web_url
                 )
                 new_podcast.save()
-            create_podcaster(podcast_name)
+            #create_podcaster(podcast_name)
             logger.info('Done.')
         logger.info('Importing podcast tasks : Done')
         return HttpResponse('Done all imports.')
@@ -134,6 +134,7 @@ def update_playlist(request):
     # Remove previous playlist
     pm.reset_playlist()
     # Get episodes and promos
+    recalculate_audios()
     all_active_podcasts = Podcast.objects.filter(active=True).exclude(active_episode=None).order_by('name')
     episodes = [podcast.active_episode for podcast in all_active_podcasts if podcast.active_episode.is_active()]
     promos = get_promo_list_by_time_interval()
@@ -235,9 +236,11 @@ def get_promo_list_by_time_interval():
     promos = {}
     for category in PromoCategory.objects.values('id', 'time_interval').order_by(
             'time_interval'):  # group by time_interval
-        promos[category['time_interval']] = Promotion.objects \
-            .filter(category__id=category['id']) \
-            .order_by('title')
+        category_obj = PromoCategory.objects.get(pk=category['id'])
+        if category_obj.promotion_set.all().count() > 0:
+            promos[category['time_interval']] = Promotion.objects \
+                .filter(category__id=category['id']) \
+                .order_by('title')
     return promos
 
 
@@ -246,3 +249,14 @@ def all_set(added):
         if not added[interval]:
             return False
     return True
+
+
+def recalculate_audios():
+    """
+    Set the next active episode to every podcast
+    :return:
+    """
+    for p in Podcast.objects.filter(active=True):
+        if p.episode_set.all().count() > 1:
+            p.active_episode = p.get_next_episode()
+            p.save()
