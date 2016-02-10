@@ -262,13 +262,10 @@ class Episode(Audio):
         return self.podcast.category.color
 
     def is_active(self):
-        # Check days to expiration
-        days = (timezone.now() - self.downloaded).days
-        if days >= self.get_category().days_to_expiration:
-            return False
-        # Max times recorded reached
-        if self.times_played >= self.get_category().max_times_played:
-            return False
+        """
+            This kind of episodes are always true
+        :return: True
+        """
         return True
 
     def is_duplicated(self, episode_item):

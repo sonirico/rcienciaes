@@ -136,7 +136,7 @@ def update_playlist(request):
     # Get episodes and promos
     recalculate_audios()
     all_active_podcasts = Podcast.objects.filter(active=True).exclude(active_episode=None).order_by('name')
-    episodes = [podcast.active_episode for podcast in all_active_podcasts if podcast.active_episode.is_active()]
+    episodes = [podcast.active_episode for podcast in all_active_podcasts]
     promos = get_promo_list_by_time_interval()
     counters = {}  # Set counters for every kind of promo
     added = {}  # Stores boolean values which represent if an audio has been added to playlist.
@@ -258,5 +258,6 @@ def recalculate_audios():
     """
     for p in Podcast.objects.filter(active=True):
         if p.episode_set.all().count() > 1:
-            p.active_episode = p.get_next_episode()
-            p.save()
+            if p.active_episode == p.get_next_episode():
+                p.active_episode = p.get_next_episode()
+                p.save()
