@@ -7,10 +7,10 @@ USER = u'admin'
 PASSWORD = u'gk4iI$2cngrw'
 URL = u'admin/stats'
 """
-HOST = u'vps84666.ovh.net'
+HOST = u'ns331078.ip-176-31-120.eu'
 PORT = u'8000'
-USER = u'admin'
-PASSWORD = u'adsfk%cvsdgkFr0353T'
+USER = u'jjsaga'
+PASSWORD = u'configuraricecastconmpdnuncaacabadeconvencerme'
 SOURCE_MOUNT = u'/mpd'
 
 URL_MAIN_STATS = u'admin/stats'

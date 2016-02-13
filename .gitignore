@@ -102,3 +102,12 @@ static/
 # Except settings. VERY Sensitive data is stored there.
 
 podcastmanager/settings.py
+
+# Vim temporary files
+*~
+
+# Bash files
+*.sh
+
+# Local files
+*.local

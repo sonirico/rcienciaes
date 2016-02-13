@@ -38,9 +38,10 @@ def update():
 @kronos.register('* * * * *')
 def check_streaming():
     if not is_anybody_online():
-        global pm
+        pm = PlayListManager()
         if pm.status().get('state') != 'play':
             pm.play()
+            logger.info('Playlist was either paused or stopped. Resuming.')
         pm.close()
 
 
@@ -78,7 +79,7 @@ def clean_old_data():
 
 @kronos.register('* * * * *')
 def check_new_audio():
-    global pm
+    pm = PlayListManager()
     if pm:
         try:
             last_entry = PlaylistHistory.objects.latest('started')
@@ -109,6 +110,8 @@ def check_new_audio():
                     audio.play()
                 except ObjectDoesNotExist, e:
                     logger.error('There is a file in the playlist which no associated audio recorded')
+    pm.close()
+
 
 
 @kronos.register('0 0 1 * *')

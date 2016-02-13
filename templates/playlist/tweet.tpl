@@ -1,6 +1,6 @@
 {% if audio %}
     {% if audio.get_type == "episode" %}
-        {{audio.title}}, de
+         {{audio.tweet_title}}, de
          {% if audio.podcast.twitter %}
             {{ audio.podcast.twitter }}
          {% else %}
@@ -9,6 +9,7 @@
     {% elif audio.tweet %}
         {{audio.tweet}}
     {% else %}
-        Promo: {{audio.title}}
+        Promo: {{audio.tweet_title}}
     {% endif %}
 {% endif %}
+

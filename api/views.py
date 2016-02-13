@@ -76,6 +76,7 @@ class StatsView(ApiView):
         try:
             retriever = IceCastRetriever()
             stats = retriever.raw_stats()
+            self.pm.close()
             del retriever
             return stats
         except Exception, e:
@@ -99,6 +100,7 @@ class StatusView(ApiView):
         if main_status.get('state') != 'stop':
             self.data['song'] = int(main_status.get('song'))
             self.data['current_time'], self.data['total_time'] = [int(v) for v in main_status.get('time').split(':')]
+        self.pm.close()
         return self.data
 
     def get_data(self, context):

@@ -201,7 +201,10 @@ def tweet(audio):
             template_content = template_file.read()
             template_file.close()
         template = Template(template_content)
-        new_status = template.render(Context({'audio': audio}))[:140]
+        new_status = (template.render(Context({'audio': audio})))
+        new_status = new_status.replace('\t', '').replace('\n', '').replace('\'', '').replace('"', '')
+        new_status = ' '.join([ w for w in new_status.split(' ') if len(w) > 0 ])
+        new_status = new_status[:140]
         try:
             if audio.get_cover() == DEFAULT_COVER_IMAGE:
                 raise ValueError('Cover image is the default one.')

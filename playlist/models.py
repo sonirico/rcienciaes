@@ -91,6 +91,11 @@ class Audio(PolymorphicModel, AdminBrowsableObject):
     def get_color(self):
         pass
 
+    def tweet_title(self):
+        if len(self.title) > 130:
+            return self.title[:120] + '...'
+        return self.title
+
     def short_title(self):
         """
             Limit title length to a hardcoded number when displaying on views

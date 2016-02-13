@@ -11,7 +11,7 @@ django-grappelli==2.6.5
 django-polymorphic==0.7.1
 feedparser==5.2.1
 kombu==3.0.26
-lxml==3.4.4
+lxml==3.5.0# make sure you have zlib1g-dev !!!
 Markdown==2.6.2
 mutagen==1.25.1
 Pillow==2.8.2
