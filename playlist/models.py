@@ -17,7 +17,7 @@ from podcastmanager.settings import AUDIOS_URL, COVERS_URL, DEFAULT_COVER_IMAGE,
 
 from mpc.models import MPDC
 
-from tools.filehandler import file_cleanup, calculate_duration
+from tools.filehandler import *
 
 
 import logging
@@ -82,6 +82,8 @@ class Audio(PolymorphicModel, AdminBrowsableObject):
         history_entry = PlaylistHistory(audio=self)
         history_entry.save()
         self.times_played += 1
+        if self.get_type() == 'episode':
+            self.times_played_aux += 1
         self.save()
         return history_entry
 
@@ -227,9 +229,9 @@ class Podcast(AdminBrowsableObject):
         :return: Next episode object to be played. Between the less played, we have to choose randomly
         """
         episodes = self.episode_set.all()
-        l = [e.times_played for e in episodes]
-        if len(l) > 0:
-            episode_list = list(episodes.filter(times_played=min(l)))
+        times_played_aux_set = [e.times_played_aux for e in episodes]
+        if len(times_played_aux_set) > 0:
+            episode_list = list(episodes.filter(times_played_aux=min(times_played_aux_set)))
             shuffle(episode_list)
             return episode_list[0]
         else:
@@ -249,7 +251,16 @@ class Episode(Audio):
         null=True, blank=True, auto_now=False, auto_now_add=False, verbose_name=u'Date released'
     )
     downloaded = models.DateTimeField(auto_now=False, auto_now_add=True, verbose_name=u'Date downloaded')
+    times_played_aux = models.IntegerField(
+            default=0, blank=False, null=False, verbose_name=u'Crucial for recalculating next episode'
+    )
     podcast = models.ForeignKey(Podcast)
+
+
+    def save(self, *args, **kwargs):
+        self.times_played_aux = self.get_min_times_played_value()
+        super(Episode, self).save(*args, **kwargs)
+
 
     class Meta:
         verbose_name = u'Episode'
@@ -284,6 +295,15 @@ class Episode(Audio):
         if episode_item.get('title') == self.title:
             return True
         return False
+
+
+    def get_min_times_played_value(self):
+        episode_set = self.podcast.episode_set.exclude(pk=self.pk)
+        if episode_set.count() > 0:
+            logger.info('Calculating times_played_aux for {}'.format(self))
+            return min([e.times_played_aux for e in episode_set.all()])
+        else:
+            return 0
 
 
 Podcast.add_to_class(
@@ -346,14 +366,7 @@ class PlaylistHistory(AdminBrowsableObject):
         return unicode('Recorded <%s>' % self.audio.title)
 
 
-# Signals
 
-post_save.connect(calculate_duration, sender=Promotion)
-post_save.connect(calculate_duration, sender=Episode)
-
-# Delete linked files, such as audios or covers
-post_delete.connect(file_cleanup, sender=Episode)
-post_delete.connect(file_cleanup, sender=Promotion)
 
 
 class PlayListManager(object):
@@ -427,3 +440,18 @@ class PlayListManager(object):
             return list(audio_file.get('file') for audio_file in self.client.playlistinfo())
         else:
             return list((folder + audio_file.get('file')) for audio_file in self.client.playlistinfo())
+
+
+
+
+
+# Signals. IT IS HIGHLY recommended put this at the end of the file
+
+post_save.connect(calculate_duration, sender=Promotion)
+post_save.connect(calculate_duration, sender=Episode)
+
+
+
+# Delete linked files, such as audios or covers
+post_delete.connect(file_cleanup, sender=Episode)
+post_delete.connect(file_cleanup, sender=Promotion)

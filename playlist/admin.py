@@ -41,7 +41,8 @@ class PodcastCategoryAdmin(admin.ModelAdmin):
 
 
 class EpisodeAdmin(admin.ModelAdmin):
-    list_display = ('title', 'podcast', 'published', 'downloaded', 'custom_duration', 'times_played', 'active', 'thumbnail')
+    list_display = ('title', 'podcast', 'published', 'downloaded', 'custom_duration', 'times_played', 'active',
+                    'thumbnail', 'times_played_aux')
     search_fields = ('title',)
     ordering = ['-downloaded']
     date_hierarchy = 'downloaded'
@@ -59,7 +60,7 @@ class EpisodeAdmin(admin.ModelAdmin):
 
 class EpisodeInline(admin.StackedInline):
     model = Episode
-    fields = ['title', 'times_played', 'filename', 'cover']
+    fields = ['title', 'times_played', 'times_played_aux', 'filename', 'cover']
     ordering = ['-published']
 
     def is_active(self, instance):
