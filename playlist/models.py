@@ -3,7 +3,7 @@
 from django.db import models
 from django.contrib.contenttypes.models import ContentType
 from django.utils import timezone
-from django.db.models.signals import post_delete, post_save
+from django.db.models.signals import post_delete, post_save, pre_save
 from django.core.exceptions import ObjectDoesNotExist
 from django.core import urlresolvers
 
@@ -82,8 +82,6 @@ class Audio(PolymorphicModel, AdminBrowsableObject):
         history_entry = PlaylistHistory(audio=self)
         history_entry.save()
         self.times_played += 1
-        if self.get_type() == 'episode':
-            self.times_played_aux += 1
         self.save()
         return history_entry
 
@@ -257,11 +255,6 @@ class Episode(Audio):
     podcast = models.ForeignKey(Podcast)
 
 
-    def save(self, *args, **kwargs):
-        self.times_played_aux = self.get_min_times_played_value()
-        super(Episode, self).save(*args, **kwargs)
-
-
     class Meta:
         verbose_name = u'Episode'
         verbose_name_plural = u'Episodes'
@@ -279,10 +272,16 @@ class Episode(Audio):
 
     def is_active(self):
         """
-            This kind of episodes are always true
+            This kind of episodes are always active
         :return: True
         """
         return True
+
+    def play(self):
+        self.times_played_aux += 1
+        self.save()
+
+        return super(Episode, self).play()
 
     def is_duplicated(self, episode_item):
         # TODO: Use a dict and a for statement for this:
@@ -296,14 +295,18 @@ class Episode(Audio):
             return True
         return False
 
-
-    def get_min_times_played_value(self):
-        episode_set = self.podcast.episode_set.exclude(pk=self.pk)
-        if episode_set.count() > 0:
-            logger.info('Calculating times_played_aux for {}'.format(self))
-            return min([e.times_played_aux for e in episode_set.all()])
-        else:
-            return 0
+    @staticmethod
+    def set_min_times_played_value(sender, instance, *args, **kwargs):
+        if kwargs.get('created') is True:
+            episode_set = instance.podcast.episode_set.exclude(pk=instance.pk)
+            logger.info('Calculating times_played_aux for {}'.format(instance))
+            if episode_set.count() > 0:
+                instance.times_played_aux = min([e.times_played_aux for e in episode_set.all()])
+                logger.info("Set to %s" % instance.times_played_aux)
+            else:
+                instance.times_played_aux = 0
+                logger.info("Set to 0")
+            instance.save()
 
 
 Podcast.add_to_class(
@@ -446,6 +449,8 @@ class PlayListManager(object):
 
 
 # Signals. IT IS HIGHLY recommended put this at the end of the file
+post_save.connect(Episode.set_min_times_played_value, sender=Episode)
+
 
 post_save.connect(calculate_duration, sender=Promotion)
 post_save.connect(calculate_duration, sender=Episode)
