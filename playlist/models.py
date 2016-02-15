@@ -111,10 +111,13 @@ class Audio(PolymorphicModel, AdminBrowsableObject):
         Not a fan of this
         :return:
         """
-        return u'<img src="/%s" title="%s" with="32" height="32" />' % (
-            os.path.join(COVERS_URL, self.get_cover()),
-            self.title
-        )
+        if len(self.cover.name) > 1:
+            return u'<img src="/%s" title="%s" with="32" height="32" />' % (
+                os.path.join(COVERS_URL, self.get_cover()),
+                self.title
+            )
+        else:
+            return 'Sin cover'
     thumbnail.allow_tags = True
 
     def get_cover(self):
