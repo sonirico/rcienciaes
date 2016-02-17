@@ -45,7 +45,6 @@ episode_template = {
 
 class DownloadManager(object):
     def __init__(self):
-        self.episode = episode_template
         self.busy = False
 
     def is_busy(self):
@@ -72,24 +71,25 @@ class DownloadManager(object):
                 episode_item = episode_template.copy()
                 episode_item['podcast'] = podcast
                 episode_item['downloaded'] = timezone.now()
-                episode_item = self.parse_feed(episode_item, podcast.feed)
-                if episode_item:  # RSS unable to being parsed
-                    download = False
-                    try:
-                        latest_episode = podcast.episode_set.latest('downloaded')
-                        download = latest_episode.is_duplicated(episode_item) is False
-                    except ObjectDoesNotExist, e:
-                        logger.info('Downloading first episode for %s' % podcast.name )
-                        download = True
-                    if download:
-                        episode_item = download_audio(episode_item)
-                        # Will return False if there have been problems. See "download_file" for further details
-                        if episode_item:
-                            podcast.deactivate_all()
-                            create_episode(episode_item)
-                    else:
-                        logger.info('Same episode already downloaded. Skipping')
-                del episode_item  # This line should be reached
+                episode_item_list = self.parse_feed(episode_item, podcast.feed)
+                if episode_item_list:  # RSS unable to being parsed
+                    for e in episode_item_list:
+                        download = False
+                        try:
+                            latest_episode = podcast.episode_set.latest('downloaded')
+                            download = latest_episode.is_duplicated(episode_item) is False
+                        except ObjectDoesNotExist, e:
+                            logger.info('Downloading first episode for %s' % podcast.name )
+                            download = True
+                        if download:
+                            episode_item = download_audio(episode_item)
+                            # Will return False if there have been problems. See "download_file" for further details
+                            if episode_item:
+                                podcast.deactivate_all()
+                                create_episode(episode_item)
+                        else:
+                            logger.info('Same episode already downloaded. Skipping')
+                    del episode_item  # This line should be reached
         # Finally, playlist should be updated
         update_playlist(None)
         self.busy = False
@@ -126,7 +126,7 @@ class DownloadManager(object):
                             episode_item['filename'] = os.path.basename(last_enclosure['href'])
                             episode_item['filename'] = create_file_name(episode_item)
                             if episode_item['type'] == "audio/x-m4a":
-                                self.episode['type'] = "audio/mp4"
+                                episode_item['type'] = "audio/mp4"
                             else:
                                 try:
                                     # Makes a HEAD request to check file type
@@ -139,7 +139,7 @@ class DownloadManager(object):
                                     logger.info(e.message)
                                     episode_item['type'] = 'audio/mpeg'
                             found = True
-                            break
+                            #break
                     if found:
                         logger.info('Enclosure with "type" found. Returning item.')
                         return episode_item
@@ -174,11 +174,13 @@ def create_episode(episode_item):
     try:
         new_episode = Episode(**episode_item)
         new_episode.save()
-        new_episode.set_active()
+        #new_episode.set_active()
         # Creates the cover
         make_cover(new_episode)
+        return new_episode
     except Exception, e:
         logger.exception(e.message)
+        return False
 
 
 def current_podcast():
@@ -201,6 +203,7 @@ def current_podcast():
         return podcast
 
 
+
 def create_file_name(episode_item):
     """
     :param episode_item: dict containing necessary data to compose a rigorous file name
@@ -217,9 +220,9 @@ def download_audio(episode_item):
     if os.path.isfile(path):  # This file already exists, must be overwritten
         os.remove(path)
     logger.info(u'Downloading new episode: "%s" ' % episode_item.get('title'))
-    g = URLGrabber(reget='simple')
+    grabber = URLGrabber()
     try:
-        g.urlgrab(episode_item.get('uri'), filename=path, reget=None)
+        grabber.urlgrab(episode_item.get('uri'), filename=path, reget='simple')
         logger.info(u'Done')
     except Exception, e:
         logger.info(u'Unable to download')
@@ -249,3 +252,87 @@ def download_audio(episode_item):
         logger.info(u'Unable to extract duration')
         logger.exception(e.message)
     return episode_item
+
+counter_global = 0
+limit_test = 3
+
+def get_episode_templates(podcast):
+    global counter_global
+    counter = 0
+    rss_url = podcast.feed
+    episode_template_list = []
+    try:
+        rss = feedparser.parse(rss_url)
+        rss = feedparser.parse(rss.href)  # follow redirect/302
+    except Exception, e:
+        print('Unable to parse this rss: %s' % rss_url)
+        print(e.message)
+        return None
+    print(' Podcast {} has ... '.format(podcast))
+    if len(rss.entries) > 0:
+        # Iterates every tag in order to find the <enclosure> one. That means, and audio.
+        for last_entry in rss.entries:
+            if hasattr(last_entry, 'enclosures') and len(last_entry.enclosures) > 0:
+                # If there are multiple <enclosure> tags, find the one which matches @type attribute
+                found = False
+                for last_enclosure in last_entry.enclosures:
+                    if hasattr(last_enclosure, 'type'):
+                        # Procedemos a la creación de una plantilla de episodio
+                        et = episode_template.copy()
+                        et['podcast'] = podcast
+                        et['downloaded'] = timezone.now()
+                        et['title'] = last_entry['title']
+                        if hasattr(last_entry, 'published_parsed'):
+                            et['published'] = format_time(last_entry['published_parsed'])
+                        else:
+                            et['published'] = None
+                        et['uri'] = last_enclosure['href']
+                        et['filename'] = os.path.basename(last_enclosure['href'])
+                        et['filename'] = create_file_name(et)
+                        if et['type'] == "audio/x-m4a":
+                            et['type'] = "audio/mp4"
+                        else:
+                            try:
+                                # Makes a HEAD request to check file type
+                                request = HeadRequest(et['uri'])
+                                response = urllib2.urlopen(request)
+                                response_headers = response.info()
+                                et['type'] = response_headers['content-type']
+                            except Exception, e:  # Just another "catch them all" handling exception
+                                print('Error al intentar extraer el audio type. Asumimos mp3')
+                                print (e.message)
+                                et['type'] = 'audio/mpeg'
+                        episode_template_list.append(et)
+                        counter += 1
+                        counter_global += 1
+                    # if counter >= limit_test:
+                        # print('Limited reached. Next podcast')
+                        # break
+        return episode_template_list
+    else:
+        print('RSS has no entries')
+
+
+def download():
+    global counter_global
+    for p in Podcast.objects.all()[15:]:
+        episode_template_list = get_episode_templates(p)
+        if episode_template_list:
+            counter = 0
+            for et in episode_template_list:
+                print counter_global
+                print 'Downloading %s -> %s' % (et.get('title'), et.get('uri'))
+                et = download_audio(et)
+                # Will return False if there have been problems. See "download_file" for further details
+                if et:
+                    episode = create_episode(et)
+                    if episode is not False and counter == 0:
+                        episode.set_active()
+                    print 'Episode successfully created'
+                counter += 1
+            del et
+            print counter_global
+        else:
+            print 'No template list'
+        del episode_template_list
+    print str(counter_global),  "audios in total"

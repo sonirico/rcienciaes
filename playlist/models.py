@@ -304,8 +304,10 @@ class Episode(Audio):
             episode_set = instance.podcast.episode_set.exclude(pk=instance.pk)
             logger.info('Calculating times_played_aux for {}'.format(instance))
             if episode_set.count() > 0:
-                instance.times_played_aux = min([e.times_played_aux for e in episode_set.all()])
-                logger.info("Set to %s" % instance.times_played_aux)
+                ep_list = [e.times_played_aux for e in episode_set.all()]
+                if len(ep_list) > 0:
+                    instance.times_played_aux = min([e.times_played_aux for e in episode_set.all()])
+                    logger.info("Set to %s" % instance.times_played_aux)
             else:
                 instance.times_played_aux = 0
                 logger.info("Set to 0")
