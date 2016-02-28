@@ -90,8 +90,6 @@ class DownloadManager(object):
                     else:
                         logger.info('Same episode already downloaded. Skipping')
                 del episode_item  # This line should be reached
-        # Finally, playlist should be updated
-        update_playlist(None)
         self.busy = False
 
     def parse_feed(self, episode_item, rss_url):

@@ -5,6 +5,8 @@ import os
 import urllib2
 import feedparser
 import pytz
+import string 
+import random
 
 from mutagen.mp3 import MP3
 from mutagen.mp4 import MP4
@@ -42,6 +44,8 @@ episode_template = {
     'type': ''
 }
 
+def get_random_suffix():
+    return ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(10))
 
 class DownloadManager(object):
     def __init__(self):
@@ -209,7 +213,7 @@ def create_file_name(episode_item):
     :param episode_item: dict containing necessary data to compose a rigorous file name
     :return: string. audios/episodetitle-downloadedat.ext
     """
-    name = normalize(episode_item.get('title'))
+    name = normalize(episode_item.get('title')) + get_random_suffix()
     now = episode_item.get('downloaded').strftime("%Y%m%d-%H%M%S")
     extension = episode_item.get('filename').split('.')[-1]
     return os.path.join(AUDIOS_URL, (name + "-" + now + "." + extension))
@@ -315,7 +319,7 @@ def get_episode_templates(podcast):
 
 def download():
     global counter_global
-    for p in Podcast.objects.all()[15:]:
+    for p in Podcast.objects.filter(name__contains='Kítaro'):
         episode_template_list = get_episode_templates(p)
         if episode_template_list:
             counter = 0
